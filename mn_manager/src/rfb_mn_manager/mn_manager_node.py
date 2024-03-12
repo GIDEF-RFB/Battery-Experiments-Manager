@@ -11,7 +11,7 @@ from typing import List
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
+from rfb_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
 #######################       LOGGER CONFIGURATION       #######################
 if __name__ == '__main__':
@@ -19,8 +19,8 @@ if __name__ == '__main__':
 log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
-from system_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeStatusE
-from wattrex_cycler_datatypes.comm_data import (CommDataCuC,CommDataRegisterTypeE,
+from rfb_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeStatusE
+from rfb_cycler_datatypes.comm_data import (CommDataCuC,CommDataRegisterTypeE,
                                                         CommDataHeartbeatC, CommDataDeviceC,
                                                         CommDataMnCmdDataC, CommDataMnCmdTypeE)
 
@@ -29,6 +29,9 @@ from .mn_broker_client import BrokerClientC
 from .mn_db_facade import DbFacadeC
 
 #######################              ENUMS               #######################
+
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_MN_NODE_NAME, DEFAULT_NODE_PERIOD)
 MN_REQS_CHAN_NAME = 'mn_reqs'
 MN_DATA_CHAN_NAME = 'mn_data'
 
@@ -38,11 +41,12 @@ class MnManagerNodeC(SysShdNodeC): # pylint: disable=abstract-method
     '''
     Cu Manager Class to instanciate a CU Manager Node
     '''
-    def __init__(self, working_flag : threading.Event, cycle_period : int) -> None:
+    def __init__(self, working_flag : threading.Event,
+        cycle_period : int= DEFAULT_NODE_PERIOD) -> None:
         '''
         Initialize the node.
         '''
-        super().__init__(name='cu_manager_node', cycle_period=cycle_period,
+        super().__init__(name=DEFAULT_MN_NODE_NAME , cycle_period=cycle_period,
                 working_flag=working_flag)
 
         self.mn_req_chan : SysShdIpcChanC = SysShdIpcChanC(name=MN_REQS_CHAN_NAME,

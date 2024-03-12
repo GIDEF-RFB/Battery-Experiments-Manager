@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.sql.expression import update, select
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
+from rfb_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
 #######################       LOGGER CONFIGURATION       #######################
 if __name__ == '__main__':
@@ -22,14 +22,13 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 #######################          MODULE IMPORTS          #######################
 
 #######################          PROJECT IMPORTS         #######################
-from wattrex_cycler_datatypes.comm_data import CommDataCuC, CommDataHeartbeatC,\
-    CommDataDeviceC
-from wattrex_driver_db import DrvDbDetectedDeviceC, DrvDbSqlEngineC, DrvDbTypeE,\
-                            DrvDbComputationalUnitC, DrvDbAvailableCuE, DrvDbConnStatusE
+from rfb_cycler_datatypes.comm_data import (CommDataCuC, CommDataHeartbeatC, CommDataDeviceC)
+from rfb_driver_db import (DrvDbDetectedDeviceC, DrvDbSqlEngineC, DrvDbTypeE,
+                            DrvDbComputationalUnitC, DrvDbAvailableCuE, DrvDbConnStatusE)
 
 #######################              ENUMS               #######################
-
-TIMEOUT_BETWEEN_CONNECTIONS=15 # 15s
+######################             CONSTANTS              ######################
+from .context import (DEFAULT_TIMEOUT_BETWEEN_CONNECTIONS)
 
 #######################             CLASSES              #######################
 
@@ -205,7 +204,7 @@ class DbFacadeC:
         '''
         # Update DrvDbComputationalUnitC.Available if elapsed time from LastConnection
         # is less than the defined constant
-        last_ts_allowed = datetime.utcnow() - timedelta(seconds=TIMEOUT_BETWEEN_CONNECTIONS)
+        last_ts_allowed = datetime.utcnow() - timedelta(seconds=DEFAULT_TIMEOUT_BETWEEN_CONNECTIONS)
 
         stmt_put_off = update(DrvDbComputationalUnitC)\
             .where(DrvDbComputationalUnitC.Available==DrvDbAvailableCuE.ON.value,\
