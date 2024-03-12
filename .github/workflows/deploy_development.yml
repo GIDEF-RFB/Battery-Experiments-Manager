@@ -60,7 +60,8 @@ jobs:
     name: Publish mn-manager docker image
     needs: publish-package
     uses: ./.github/workflows/docker_image.yml
-    secrets: inherit
+    secrets:
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
     with:
       dockerfile-path: ./devops/mn_manager/Dockerfile.mn_manager
       docker-repo-name: rfb-mn-manager-dev
@@ -71,7 +72,8 @@ jobs:
     name: Publish web-server docker image
     if: ${{ github.event_name == 'pull_request_review' && github.event.review.state == 'approved' && github.event.pull_request.head.ref == 'web_server'}}
     uses: ./.github/workflows/docker_image.yml
-    secrets: inherit
+    secrets:
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
     with:
       dockerfile-path: ./devops/web_server/Dockerfile.web_server
       docker-repo-name: rfb-web-server-dev
