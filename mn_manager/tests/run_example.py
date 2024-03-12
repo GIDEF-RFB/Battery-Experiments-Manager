@@ -21,7 +21,7 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
 sys.path.append(os.path.dirname(__file__)+'/../../')
-from mn_manager.src.wattrex_mn_manager import MnManagerNodeC
+from mn_manager.src.rfb_mn_manager import MnManagerNodeC
 
 #######################          PROJECT IMPORTS         #######################
 

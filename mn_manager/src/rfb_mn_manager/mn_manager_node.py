@@ -11,7 +11,7 @@ from typing import List
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
+from rfb_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
 #######################       LOGGER CONFIGURATION       #######################
 if __name__ == '__main__':
@@ -19,8 +19,8 @@ if __name__ == '__main__':
 log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
-from system_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeStatusE
-from wattrex_cycler_datatypes.comm_data import (CommDataCuC,CommDataRegisterTypeE,
+from rfb_shared_tool import SysShdIpcChanC, SysShdNodeC, SysShdNodeStatusE
+from rfb_cycler_datatypes.comm_data import (CommDataCuC,CommDataRegisterTypeE,
                                                         CommDataHeartbeatC, CommDataDeviceC,
                                                         CommDataMnCmdDataC, CommDataMnCmdTypeE)
 

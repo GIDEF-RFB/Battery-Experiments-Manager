@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.sql.expression import update, select
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
+from rfb_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
 #######################       LOGGER CONFIGURATION       #######################
 if __name__ == '__main__':
@@ -22,9 +22,8 @@ log: Logger = sys_log_logger_get_module_logger(__name__)
 #######################          MODULE IMPORTS          #######################
 
 #######################          PROJECT IMPORTS         #######################
-from wattrex_cycler_datatypes.comm_data import (CommDataCuC, CommDataHeartbeatC,
-                            CommDataDeviceC)
-from wattrex_driver_db import (DrvDbDetectedDeviceC, DrvDbSqlEngineC, DrvDbTypeE,
+from rfb_cycler_datatypes.comm_data import (CommDataCuC, CommDataHeartbeatC, CommDataDeviceC)
+from rfb_driver_db import (DrvDbDetectedDeviceC, DrvDbSqlEngineC, DrvDbTypeE,
                             DrvDbComputationalUnitC, DrvDbAvailableCuE, DrvDbConnStatusE)
 
 #######################              ENUMS               #######################

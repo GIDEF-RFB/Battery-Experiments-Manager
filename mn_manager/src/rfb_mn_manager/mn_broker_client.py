@@ -11,9 +11,7 @@ from pickle import dumps, loads
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
-
-from wattrex_cycler_datatypes.comm_data import CommDataDeviceC
+from rfb_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
 #######################       LOGGER CONFIGURATION       #######################
 if __name__ == '__main__':
@@ -21,9 +19,9 @@ if __name__ == '__main__':
 log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################          PROJECT IMPORTS         #######################
-from wattrex_cycler_datatypes.comm_data import CommDataCuC, CommDataRegisterTypeE,\
-    CommDataHeartbeatC
-from wattrex_driver_mqtt import DrvMqttDriverC
+from rfb_cycler_datatypes.comm_data import CommDataCuC, CommDataRegisterTypeE,\
+    CommDataHeartbeatC, CommDataDeviceC
+from rfb_driver_mqtt import DrvMqttDriverC
 
 #######################          MODULE IMPORTS          #######################
 
