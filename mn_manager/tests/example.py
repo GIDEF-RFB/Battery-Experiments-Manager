@@ -11,7 +11,7 @@ import threading
 #######################       THIRD PARTY IMPORTS        #######################
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
+from rfb_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
 #######################       LOGGER CONFIGURATION       #######################
 if __name__ == '__main__':
@@ -19,12 +19,12 @@ if __name__ == '__main__':
 log: Logger = sys_log_logger_get_module_logger(__name__)
 
 #######################          MODULE IMPORTS          #######################
-from wattrex_mn_manager import MnManagerNodeC, MN_REQS_CHAN_NAME
+from rfb_mn_manager import MnManagerNodeC, MN_REQS_CHAN_NAME
 
-from wattrex_cycler_datatypes.comm_data import (CommDataMnCmdDataC, CommDataMnCmdTypeE)
+from rfb_cycler_datatypes.comm_data import (CommDataMnCmdDataC, CommDataMnCmdTypeE)
 
 #######################          PROJECT IMPORTS         #######################
-from system_shared_tool import SysShdIpcChanC
+from rfb_shared_tool import SysShdIpcChanC
 
 #######################              ENUMS               #######################
 
