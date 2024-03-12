@@ -34,11 +34,10 @@ jobs:
       python-version: "3.10"
       is-test-package: false
 
-  publish-package:
-    name: Publish package ${{ vars.MN_MANAGER_PACKAGE_NAME }} to Test PyPi
+    publish-package:
+    name: Publish package ${{ vars.MN_MANAGER_PACKAGE_NAME }} to PyPi
     needs: build-package-on-pull-request
     runs-on: ubuntu-latest
-    environment: development
     permissions:
       id-token: write
 
@@ -49,11 +48,12 @@ jobs:
           name:  ${{ vars.MN_MANAGER_PACKAGE_NAME }}
           path: ${{ vars.MN_MANAGER_PACKAGE_NAME }}/dist/
 
-      - name: Publish package to Test PyPI
-        uses: pypa/gh-action-pypi-publish@b7f401de30cb6434a1e19f805ff006643653240e #realse/v1.8.10
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@f8c70e705ffc13c3b4d1221169b84f12a75d6ca8
         with:
           verbose: true
-          repository-url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
           packages-dir: "${{ vars.MN_MANAGER_PACKAGE_NAME }}/dist/"
 
   publish-DEV-docker-image-mn-manager:
