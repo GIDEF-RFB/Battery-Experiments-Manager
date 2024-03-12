@@ -12,11 +12,11 @@ jobs:
   build-package-on-pull-request:
     if: ${{ github.event_name == 'pull_request_review' && github.event.review.state == 'approved' && github.event.pull_request.head.ref == 'develop' && github.event.pull_request.base.ref == 'master' }}
     name: Build package ${{ vars.MN_MANAGER_PACKAGE_NAME }}
-    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
+    uses: GIDEF-RFB/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       package-name: ${{ vars.MN_MANAGER_PACKAGE_NAME }}
       package-path: mn_manager
-      source-path: mn_manager/src/wattrex_mn_manager
+      source-path: mn_manager/src/${{ vars.MN_MANAGER_PACKAGE_NAME }}
       python-version: "3.10"
       is-test-package: false
 
@@ -47,21 +47,21 @@ jobs:
     needs: publish-package
     uses: ./.github/workflows/docker_image.yml
     secrets:
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD_JAVI }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
     with:
       dockerfile-path: ./devops/mn_manager/Dockerfile.mn_manager
-      docker-repo-name: wattrex-mn-manager
+      docker-repo-name: rfb-mn-manager
       is-develop: false
-      docker-user: ${{ vars.DOCKER_USERNAME_JAVI }}
+      docker-user: ${{ vars.DOCKER_USER }}
 
   publish-docker-image-web-server:
     name: Publish web-server docker image
     needs: publish-package
     uses: ./.github/workflows/docker_image.yml
     secrets:
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD_JAVI }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_TOKEN }}
     with:
       dockerfile-path: ./devops/web_server/Dockerfile.web_server
-      docker-repo-name: wattrex-web-server
+      docker-repo-name: rfb-web-server
       is-develop: false
-      docker-user: ${{ vars.DOCKER_USERNAME_JAVI }}
+      docker-user: ${{ vars.DOCKER_USER }}
