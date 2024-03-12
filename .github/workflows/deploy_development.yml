@@ -15,22 +15,22 @@ jobs:
   build-package-on-push:
     if: ${{ github.event_name == 'push'}}
     name: Build package ${{ vars.MN_MANAGER_PACKAGE_NAME }}
-    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
+    uses: GIDEF-RFB/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       package-name: ${{ vars.MN_MANAGER_PACKAGE_NAME }}
       package-path: mn_manager
-      source-path: mn_manager/src/wattrex_mn_manager
+      source-path: mn_manager/src/${{ vars.MN_MANAGER_PACKAGE_NAME }}
       python-version: "3.10"
       is-test-package: false
 
   build-package-on-pull-request:
     if: ${{ github.event_name == 'pull_request_review' && github.event.review.state == 'approved' && github.event.pull_request.head.ref == 'mn_manager'}}
     name: Build package ${{ vars.MN_MANAGER_PACKAGE_NAME }}
-    uses: WattRex/System-Tools/.github/workflows/build_python_package.yml@develop
+    uses: GIDEF-RFB/System-Tools/.github/workflows/build_python_package.yml@develop
     with:
       package-name: ${{ vars.MN_MANAGER_PACKAGE_NAME }}
       package-path: mn_manager
-      source-path: mn_manager/src/wattrex_mn_manager
+      source-path: mn_manager/src/${{ vars.MN_MANAGER_PACKAGE_NAME }}
       python-version: "3.10"
       is-test-package: false
 
@@ -63,9 +63,9 @@ jobs:
     secrets: inherit
     with:
       dockerfile-path: ./devops/mn_manager/Dockerfile.mn_manager
-      docker-repo-name: wattrex-mn-manager-dev
+      docker-repo-name: rfb-mn-manager-dev
       is-develop: true
-      docker-user: ${{ vars.DOCKER_USERNAME_JAVI }}
+      docker-user: ${{ vars.DOCKER_USER }}
 
   publish-DEV-docker-image-web-server:
     name: Publish web-server docker image
@@ -74,6 +74,6 @@ jobs:
     secrets: inherit
     with:
       dockerfile-path: ./devops/web_server/Dockerfile.web_server
-      docker-repo-name: wattrex-web-server-dev
+      docker-repo-name: rfb-web-server-dev
       is-develop: true
-      docker-user: ${{ vars.DOCKER_USERNAME_JAVI }}
+      docker-user: ${{ vars.DOCKER_USER }}
