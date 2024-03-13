@@ -211,6 +211,11 @@ class DbFacadeC:
                 DrvDbComputationalUnitC.LastConnection < last_ts_allowed)\
             .values(Available=DrvDbAvailableCuE.OFF.value)
 
+        stm_dev_off = update(DrvDbDetectedDeviceC)\
+            .where(DrvDbComputationalUnitC.CUID == DrvDbDetectedDeviceC.CUID)\
+            .values(ConnStatus=DrvDbConnStatusE.DISCONNECTED.value)\
+            .where(DrvDbComputationalUnitC.Available==DrvDbAvailableCuE.OFF.value)
+
         stmt_put_on = update(DrvDbComputationalUnitC)\
             .where(DrvDbComputationalUnitC.Available==DrvDbAvailableCuE.OFF.value,\
                 DrvDbComputationalUnitC.LastConnection > last_ts_allowed)\
@@ -218,6 +223,7 @@ class DbFacadeC:
 
         self.database.session.execute(stmt_put_off)
         self.database.session.execute(stmt_put_on)
+        self.database.session.execute(stm_dev_off)
 
     def commit(self) -> None:
         '''
