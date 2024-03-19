@@ -27,6 +27,7 @@ DEFAULT_CRED_FILEPATH : str = 'devops/mn_manager/.cred.yaml' #Max number of allo
 DEFAULT_MN_NODE_NAME: str = 'cu_manager_node'
 DEFAULT_NODE_PERIOD: int = 750 # ms # Period of the node
 DEFAULT_TIMEOUT_BETWEEN_CONNECTIONS: int =15
+DEFAULT_DATA_SIZE: int = 550 # Max size of the data message
 
 
 CONSTANTS_NAMES = ('DEFAULT_CRED_FILEPATH','DEFAULT_MN_NODE_NAME', 'DEFAULT_NODE_PERIOD',
