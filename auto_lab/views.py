@@ -34,7 +34,6 @@ from auto_lab.analyzer import analyzer, stringToInstructions
 # Global chan to communicate with the MN
 _MN_REQ_CHAN : SysShdIpcChanC = SysShdIpcChanC(name=MN_REQS_CHAN_NAME)
 _MN_DATA_CHAN : SysShdIpcChanC = SysShdIpcChanC(name=MN_DATA_CHAN_NAME)
-MAX_NUMERIC_VALUE = 8388
 
 def graph(request):
     """
@@ -54,19 +53,8 @@ def graph(request):
     return render(request, 'graph.html', context)
 
 
-def monitor(request, return_render=True):
-    """
-    View function for monitoring live experiments and cycle stations.
-    Args:
-        request: The HTTP request object.
-        return_render (bool): Flag indicating whether to return the rendered template or the context
-
-    Returns:
-        If `return_render` is True, returns the rendered template 'monitor.html' with the context.
-        If `return_render` is False, returns the context dictionary.
-    """
-    live_experiments = Experiment.objects.filter(
-        status__in=['RUNNING', 'PAUSE']).select_related('cs_id')
+def monitor(request, return_render = True):
+    live_experiments = Experiment.objects.filter(status__in=['RUNNING', 'PAUSE']).select_related('cs_id')
     live_cycle_stations = []
     for experiment in live_experiments:
         live_cycle_stations.append(experiment.cs_id)
@@ -80,62 +68,30 @@ def monitor(request, return_render=True):
         return context
 
 
-def monitor_selected(request, cs_id_selected):
-    """
-    Renders the monitor.html template with the necessary context 
-    data for the selected cycler station.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-        cs_id_selected (int): The ID of the selected cycler station.
-
-    Returns:
-        HttpResponse: The rendered monitor.html template with the context data.
-
-    Raises:
-        HttpResponseBadRequest: If there are no experiments running 
-        or paused on the selected cycler station.
-    """     
-    #TODO: Hacer que si un equipo está desactivado (status != ONLINE) se pueda seguir 
-    # accediendo a sus experimentos ya que ahora no puedes hacer 
-    # click en el en la vista de monitor.html
+def monitor_selected(request, cs_id_selected): #TODO: Hacer que si un equipo está desactivado (status != ONLINE) se pueda seguir accediendo a sus experimentos ya que ahora no puedes hacer click en el en la vista de monitor.html
     # print(monitor(request, render = False))
     cycle_stations_on = monitor(request, return_render = False)['cycle_stations_on']
     cycle_station_selected = Cyclerstation.objects.get(cs_id=cs_id_selected)
-    experiments_selected = Experiment.objects.filter(
-        cs_id=cs_id_selected).filter(status__in=['RUNNING', 'PAUSE']).order_by('-exp_id').first()
+    experiments_selected = Experiment.objects.filter(cs_id=cs_id_selected).filter(status__in=['RUNNING', 'PAUSE']).order_by('-exp_id').first()
     profile_selected = Profile.objects.get(prof_id=experiments_selected.prof_id.prof_id)
 
-    last_profile_instr = Instructions.objects.order_by(
-        '-instr_id').select_related('prof_id').first()
+    last_profile_instr = Instructions.objects.order_by('-instr_id').select_related('prof_id').first()
 
-    last_profile_instr = Instructions.objects.filter(
-        prof_id=profile_selected).order_by('-instr_id').first()
-    last_meas_instr = Genericmeasures.objects.filter(
-        exp_id=experiments_selected).order_by('-meas_id').select_related('instr_id').first()
+    last_profile_instr = Instructions.objects.filter(prof_id=profile_selected).order_by('-instr_id').first()
+    last_meas_instr = Genericmeasures.objects.filter(exp_id=experiments_selected).order_by('-meas_id').select_related('instr_id').first()
 
     profile_instr = {
         'prof_id': profile_selected.prof_id if profile_selected is not None else None,
         'last_instr': last_meas_instr.instr_id if last_meas_instr is not None else None,
         'total_n_instr': last_profile_instr.instr_id if last_profile_instr is not None else None,
+        'instr': f'{last_meas_instr.instr_id.mode}, {last_meas_instr.instr_id.set_point/1000}, {last_meas_instr.instr_id.limit_type}, {last_meas_instr.instr_id.limit_point/1000}' if last_meas_instr is not None else None,
     }
-    if last_profile_instr is not None:
-        profile_instr['instr']: (f"{last_meas_instr.instr_id.mode}, "
-                                 f"{last_meas_instr.instr_id.set_point/1000}, "
-                                 f"{last_meas_instr.instr_id.limit_type}, "
-                                 f"{last_meas_instr.instr_id.limit_point/1000}")
-    else:
-        profile_instr['instr'] = None
     if experiments_selected is not None:
-        different_extended_measures = Extendedmeasures.objects.filter(
-            exp_id=experiments_selected).values_list('used_meas_id', flat=True).distinct()
+        different_extended_measures = Extendedmeasures.objects.filter(exp_id=experiments_selected).values_list('used_meas_id', flat=True).distinct()
         different_extended_measures = set(different_extended_measures)
         extended_measures_names = {}
         for ext_meas in different_extended_measures:
-            extended_measures_names[ext_meas] = Usedmeasures.objects.get(
-                used_meas_id=ext_meas).custom_name if Usedmeasures.objects.get(
-                    used_meas_id=ext_meas).custom_name is not None else Usedmeasures.objects.get(
-                        used_meas_id=ext_meas).meas_type.meas_name
+            extended_measures_names[ext_meas] = Usedmeasures.objects.get(used_meas_id=ext_meas).custom_name if Usedmeasures.objects.get(used_meas_id=ext_meas).custom_name != None else Usedmeasures.objects.get(used_meas_id=ext_meas).meas_type.meas_name
         context = {
             'cycle_stations_on': cycle_stations_on,
             'experiment_selected': experiments_selected,
@@ -145,34 +101,19 @@ def monitor_selected(request, cs_id_selected):
         }
         return render(request, 'monitor.html', context)
     else:
-        return HttpResponseBadRequest(("<h1>Error 400 - Bad request</h1><h3>There are no "
-                                       "experiments running or paused on the cycler station "
-                                       "selected</h3>"))
+        return HttpResponseBadRequest("<h1>Error 400 - Bad request</h1><h3>There are no experiments running or paused on the cycler station selected</h3>")
 
 
 def form_submit_experiment(request):
-    """
-    Process the form submission for creating a new experiment.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponseRedirect: A redirect response to the specified URL.
-
-    Raises:
-        HttpResponseBadRequest: If there is an error in the form submission.
-
-    """
     if request.method == 'POST':
         form = request.POST
         print(form)
-        new_experiment = Experiment( name=form['expName_input'],
-                                description=form['expDescription_input'],
-                                date_creation=strftime("%Y-%m-%d %H:%M:%S", gmtime()),
-                                status='QUEUED',
-                                cs_id=Cyclerstation.objects.get(cs_id=form['expEquipment_input']),
-                                bat_id=Battery.objects.get(bat_id=form['expBattery_input']),
+        newExperiment = Experiment( name=form['expName_input'],
+                                    description=form['expDescription_input'],
+                                    date_creation=strftime("%Y-%m-%d %H:%M:%S", gmtime()),
+                                    status='QUEUED',
+                                    cs_id=Cyclerstation.objects.get(cs_id=form['expEquipment_input']),
+                                    bat_id=Battery.objects.get(bat_id=form['expBattery_input']),
                                   )
 
         if 'profile_instructions_write' in form or 'profile_instructions_upload' in form:
@@ -184,58 +125,45 @@ def form_submit_experiment(request):
             instructions = stringToInstructions(form['profile_instructions_'+profile_method])
             tmp_analyzer = analyzer(instructions)
 
-            new_profile = Profile(   name=form['profName_input_'+profile_method],
+            newProfile = Profile(   name=form['profName_input_'+profile_method],
                                     description=form['profDescription_input_'+profile_method],
                                     volt_max=tmp_analyzer.volt_max,
                                     volt_min=tmp_analyzer.volt_min,
                                     curr_max=tmp_analyzer.curr_max,
                                     curr_min=tmp_analyzer.curr_min,
                                 )
-            new_profile.save()
-            new_experiment.prof_id = new_profile
+            newProfile.save()
+            newExperiment.prof_id = newProfile
 
             for instr in instructions:
-                instr.prof_id = new_profile
+                instr.prof_id = newProfile
                 instr.mode = instr.mode.value
                 instr.limit_type = instr.limit_type.value
             Instructions.objects.bulk_create(instructions)
 
         elif 'expProfileSelected_input' in form:
-            new_experiment.prof_id = Profile.objects.get(prof_id=form['expProfileSelected_input'])
+            newExperiment.prof_id = Profile.objects.get(prof_id=form['expProfileSelected_input'])
         else:
-            return HttpResponseBadRequest(("<h1>Error 400 - Bad request</h1><h3>There "
-                                           "is no profile selected</h3>"))
+            return HttpResponseBadRequest("<h1>Error 400 - Bad request</h1><h3>There is no profile selected</h3>")
 
-        new_experiment.save()
+        newExperiment.save()
 
         if form['expBattery_type'] == 'RedoxStack':
-            new_redox_electrolyte = Redoxelectrolyte( exp_id = new_experiment,
-                                    bat_id = Redoxstack.objects.get(bat_id=new_experiment.bat_id),
-                                    polarity = form['expElectrolytePolarity_input'],
-                                    electrolyte_vol = form['expElectrolyteVolume_input'],
-                                    initial_soc = form['expElectrolyteInitialSOC_input'],
-                                    min_flow_rate = form['expElectrolyteMinFlowRate_input'],
-                                    max_flow_rate = form['expElectrolyteMaxFlowRate_input'],
-                                    )
-            new_redox_electrolyte.save()
+            newRedoxElectrolyte = Redoxelectrolyte( exp_id = newExperiment,
+                                                    bat_id = Redoxstack.objects.get(bat_id=newExperiment.bat_id),
+                                                    polarity = form['expElectrolytePolarity_input'],
+                                                    electrolyte_vol = form['expElectrolyteVolume_input'],
+                                                    initial_soc = form['expElectrolyteInitialSOC_input'],
+                                                    min_flow_rate = form['expElectrolyteMinFlowRate_input'],
+                                                    max_flow_rate = form['expElectrolyteMaxFlowRate_input'],
+                                                  )
+            newRedoxElectrolyte.save()
 
-    url_to_be_redirected = '/'
-    return redirect(url_to_be_redirected)
+    urlToBeRedirected = f'/'
+    return redirect(urlToBeRedirected)
 
-def form_import_experiment(request): #pylint: disable=too-many-locals, too-many-branches, too-many-statements
-    """
-    Imports an experiment from a CSV file and saves it to the database.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The HTTP response object.
-
-    Raises:
-        ValueError: If the data in the CSV file is not valid.
-
-    """
+def form_import_experiment(request):
+    MAX_NUMERIC_VALUE = 8388
     form = request.POST
 
     if request.method == 'POST' and len(request.FILES) > 0:
@@ -247,11 +175,8 @@ def form_import_experiment(request): #pylint: disable=too-many-locals, too-many-
             extended_measures_selected.remove(0)
         except ValueError as e:
             instructions_given = False
-            print(e)
 
-        extended_measures_selected_names_and_id = {Measuresdeclaration.objects.get(
-                                        meas_type=meas_type).meas_name.lower(
-                                        ) : meas_type for meas_type in extended_measures_selected}
+        extended_measures_selected_names_and_id = {Measuresdeclaration.objects.get(meas_type=meas_type).meas_name.lower() : meas_type for meas_type in extended_measures_selected}
 
         stored_time = time()
 
@@ -270,8 +195,7 @@ def form_import_experiment(request): #pylint: disable=too-many-locals, too-many-
                     row[row.index(column)] = column.lower()
                 for column in row:
                     if column in extended_measures_selected_names_and_id:
-                        ext_meas_csv_columns[extended_measures_selected_names_and_id[column]] = \
-                            row.index(column)
+                        ext_meas_csv_columns[extended_measures_selected_names_and_id[column]] = row.index(column)
                     else:
                         if column == 'timestamp':
                             generic_meas_csv_columns['timestamp'] = row.index(column)
@@ -285,21 +209,14 @@ def form_import_experiment(request): #pylint: disable=too-many-locals, too-many-
                 print(f'Column names are {", ".join(row)}')
             else:
                 try:
-                    for generic_meas in generic_meas_csv_columns: #pylint: disable=consider-using-dict-items
+                    for generic_meas in generic_meas_csv_columns:
                         if generic_meas == 'timestamp':
-                            datetime.strptime(
-                                row[generic_meas_csv_columns[generic_meas]], '%Y-%m-%d %H:%M:%S.%f')
+                            datetime.strptime(row[generic_meas_csv_columns[generic_meas]], '%Y-%m-%d %H:%M:%S.%f')
                         elif generic_meas == 'voltage':
-                            if (float(
-                                row[generic_meas_csv_columns[generic_meas]]) > MAX_NUMERIC_VALUE or
-                                float(
-                                row[generic_meas_csv_columns[generic_meas]]) < -MAX_NUMERIC_VALUE):
+                            if float(row[generic_meas_csv_columns[generic_meas]]) > MAX_NUMERIC_VALUE or float(row[generic_meas_csv_columns[generic_meas]]) < -MAX_NUMERIC_VALUE:
                                 raise ValueError
                         elif generic_meas == 'current':
-                            if (float(
-                                row[generic_meas_csv_columns[generic_meas]]) > MAX_NUMERIC_VALUE or
-                                float(
-                                row[generic_meas_csv_columns[generic_meas]]) < -MAX_NUMERIC_VALUE):
+                            if float(row[generic_meas_csv_columns[generic_meas]]) > MAX_NUMERIC_VALUE or float(row[generic_meas_csv_columns[generic_meas]]) < -MAX_NUMERIC_VALUE:
                                 raise ValueError
                         elif instructions_given and generic_meas == 'instr_id':
                             if int(row[generic_meas_csv_columns[generic_meas]]) <= 0:
@@ -307,22 +224,19 @@ def form_import_experiment(request): #pylint: disable=too-many-locals, too-many-
                             else:
                                 if int(row[generic_meas_csv_columns[generic_meas]]) > max_instr_id:
                                     max_instr_id = int(row[generic_meas_csv_columns[generic_meas]])
-                    for ext_meas in ext_meas_csv_columns: #pylint: disable=consider-using-dict-items
-                        if (float(
-                            row[ext_meas_csv_columns[ext_meas]]) > MAX_NUMERIC_VALUE or
-                            float(row[ext_meas_csv_columns[ext_meas]]) < -MAX_NUMERIC_VALUE):
+                    for ext_meas in ext_meas_csv_columns:
+                        if float(row[ext_meas_csv_columns[ext_meas]]) > MAX_NUMERIC_VALUE or float(row[ext_meas_csv_columns[ext_meas]]) < -MAX_NUMERIC_VALUE:
                             raise ValueError
                 except Exception as e:
                     print(e)
-                    return HttpResponseBadRequest(("<h1>Error 406 - Not Acceptable</h1><h3>Data in "
-                                            " csv not valid</h3><img src='https://http.cat/400'>"))
+                    return HttpResponseBadRequest("<h1>Error 406 - Not Acceptable</h1><h3>Data in csv not valid</h3><img src='https://http.cat/400'>")
             line_count += 1
         print(f'1. Processed {line_count} lines. Elapsed time: {time() - stored_time} seconds')
         line_count = 0
         csv_reader = csv.reader(file_read, delimiter=',')
         # print(profilefile.read().decode('utf-8').splitlines())
 
-        new_experiment = Experiment( name=form['expName_input'],
+        newExperiment = Experiment( name=form['expName_input'],
                                     description=form['expDescription_input'],
                                     date_creation=strftime("%Y-%m-%d %H:%M:%S", localtime()),
                                     date_begin=strftime("%Y-%m-%d %H:%M:%S", localtime()),
@@ -340,66 +254,57 @@ def form_import_experiment(request): #pylint: disable=too-many-locals, too-many-
                 profile_method = 'upload'
             instructions = stringToInstructions(form['profile_instructions_'+profile_method])
             if max_instr_id > len(instructions):
-                return HttpResponseBadRequest(("<h1>Error 406 - Not Acceptable</h1><h3>Data in "
-                                            "csv not valid</h3><img src='https://http.cat/400'>"))
+                return HttpResponseBadRequest("<h1>Error 406 - Not Acceptable</h1><h3>Data in csv not valid</h3><img src='https://http.cat/400'>")
             tmp_analyzer = analyzer(instructions)
 
-            new_profile = Profile(   name=form['profName_input_'+profile_method],
+            newProfile = Profile(   name=form['profName_input_'+profile_method],
                                     description=form['profDescription_input_'+profile_method],
                                     volt_max=tmp_analyzer.volt_max,
                                     volt_min=tmp_analyzer.volt_min,
                                     curr_max=tmp_analyzer.curr_max,
                                     curr_min=tmp_analyzer.curr_min,
                                 )
-            new_profile.save()
-            new_experiment.prof_id = new_profile
+            newProfile.save()
+            newExperiment.prof_id = newProfile
 
             for instr in instructions:
-                instr.prof_id = new_profile
+                instr.prof_id = newProfile
             Instructions.objects.bulk_create(instructions)
 
         elif 'expProfileSelected_input' in form:
-            new_experiment.prof_id = Profile.objects.get(prof_id=form['expProfileSelected_input'])
-            if max_instr_id > len(Instructions.objects.filter(
-                prof_id=new_experiment.prof_id).values_list('instr_id', flat=True)):
-                return HttpResponseBadRequest(("<h1>Error 406 - Not Acceptable</h1><h3>Data in csv "
-                                               "not valid</h3><img src='https://http.cat/400'>"))
+            newExperiment.prof_id = Profile.objects.get(prof_id=form['expProfileSelected_input'])
+            if max_instr_id > len(Instructions.objects.filter(prof_id=newExperiment.prof_id).values_list('instr_id', flat=True)):
+                return HttpResponseBadRequest("<h1>Error 406 - Not Acceptable</h1><h3>Data in csv not valid</h3><img src='https://http.cat/400'>")
         else:
-            return HttpResponseBadRequest(("<h1>Error 400 - Bad request</h1><h3>There is no "
-                                           "profile selected</h3><img src='https://http.cat/400'>"))
+            return HttpResponseBadRequest("<h1>Error 400 - Bad request</h1><h3>There is no profile selected</h3><img src='https://http.cat/400'>")
 
-        new_experiment.save()
+        newExperiment.save()
 
         if form['expBattery_type'] == 'RedoxStack':
-            new_redox_electrolyte = Redoxelectrolyte( exp_id = new_experiment,
-                                            bat_id = new_experiment.bat_id,
-                                            electrolyte_vol = form['expElectrolyteVolume_input'],
-                                            max_flow_rate = form['expElectrolyteMaxFlowRate_input'],
+            newRedoxElectrolyte = Redoxelectrolyte( exp_id = newExperiment,
+                                                    bat_id = newExperiment.bat_id,
+                                                    electrolyte_vol = form['expElectrolyteVolume_input'],
+                                                    max_flow_rate = form['expElectrolyteMaxFlowRate_input'],
                                                   )
-            new_redox_electrolyte.save()
+            newRedoxElectrolyte.save()
 
         stored_time = time()
         for row in csv_reader:
             if line_count != 0:
-                new_generic_meas = Genericmeasures(  exp_id = new_experiment,
-                        meas_id = line_count,
-                        timestamp = datetime.strptime(
-                            row[generic_meas_csv_columns['timestamp']], '%Y-%m-%d %H:%M:%S.%f'),
-                        instr_id = Instructions.objects.get(
-                            prof_id=new_experiment.prof_id, instr_id=int(
-                                row[generic_meas_csv_columns['instr_id']])
-                                ) if instructions_given else Instructions.objects.get(
-                                    prof_id=new_experiment.prof_id, instr_id=1),
-                        voltage = int(float(row[generic_meas_csv_columns['voltage']])*1000),
-                        current = int(float(row[generic_meas_csv_columns['current']])*1000),
+                new_generic_meas = Genericmeasures(  exp_id = newExperiment,
+                                                        meas_id = line_count,
+                                                        timestamp = datetime.strptime(row[generic_meas_csv_columns['timestamp']], '%Y-%m-%d %H:%M:%S.%f'),
+                                                        instr_id = Instructions.objects.get(prof_id=newExperiment.prof_id, instr_id=int(row[generic_meas_csv_columns['instr_id']])) if instructions_given else Instructions.objects.get(prof_id=newExperiment.prof_id, instr_id=1),
+                                                        voltage = int(float(row[generic_meas_csv_columns['voltage']])*1000),
+                                                        current = int(float(row[generic_meas_csv_columns['current']])*1000),
                                                     )
                 # new_generic_meas.save()
                 generic_meas_list.append(new_generic_meas)
-                for meas_type in ext_meas_csv_columns: #pylint: disable=consider-using-dict-items
-                    new_ext_meas = Extendedmeasures(exp_id = new_experiment,
-                                meas_id = new_generic_meas.meas_id,
-                                meas_type = Measuresdeclaration.objects.get(meas_type=meas_type),
-                                value = int(float(row[ext_meas_csv_columns[meas_type]])*1000),
+                for meas_type in ext_meas_csv_columns:
+                    new_ext_meas = Extendedmeasures(   exp_id = newExperiment,
+                                                        meas_id = new_generic_meas.meas_id,
+                                                        meas_type = Measuresdeclaration.objects.get(meas_type=meas_type),
+                                                        value = int(float(row[ext_meas_csv_columns[meas_type]])*1000),
                                                     )
                     ext_meas_list.append(new_ext_meas)
 
@@ -410,82 +315,60 @@ def form_import_experiment(request): #pylint: disable=too-many-locals, too-many-
         print(f'Time taken to bulk: {time() - _time} seconds')
         print(f'2. Processed {line_count} lines. Elapsed time: {time() - stored_time} seconds')
 
-        url_to_be_redirected = f'/experiments'
-        return redirect(url_to_be_redirected)
+        urlToBeRedirected = f'/experiments'
+        return redirect(urlToBeRedirected)
     else:
-        return HttpResponseBadRequest(("<h1>Error 403</h1><h3>Forbidden</h3>"
-                                       "<img src='https://http.cat/403'>"))
+        return HttpResponseBadRequest("<h1>Error 403</h1><h3>Forbidden</h3><img src='https://http.cat/403'>")
 
 def form_submit_battery(request):
-    """
-    Process the battery form submission and save the battery information to the database.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponseRedirect: A redirect response to the '/add_experiment' URL.
-
-    """
     if request.method == 'POST':
         form = request.POST
         print(form)
-        new_battery = Battery(   name=form['batName_input'],
-                        description=form['batDescription_input'],
-                        manufacturer=form['batManufacturer_input'],
-                        model=form['batModel_input'],
-                        sn=form['batSerialNumber_input'],
-                        fab_date=datetime.strptime(form['batFabricationDate_input'], '%Y/%m/%d'),
-                        tech=form['batTechnology_input'],
-                        cells_num=int(form['batCellsNumber_input']),
-                        cell_volt_min=int(float(form['batMinCellVoltage_input'])*1000),
-                        cell_volt_max=int(float(form['batMaxCellVoltage_input'])*1000),
-                        volt_min=int(float(form['batMinVoltage_input'])*1000),
-                        volt_max=int(float(form['batMaxVoltage_input'])*1000),
-                        curr_min=int(float(form['batMinCurrent_input'])*1000),
-                        curr_max=int(float(form['batMaxCurrent_input'])*1000),
+        newBattery = Battery(   name=form['batName_input'],
+                                description=form['batDescription_input'],
+                                manufacturer=form['batManufacturer_input'],
+                                model=form['batModel_input'],
+                                sn=form['batSerialNumber_input'],
+                                fab_date=datetime.strptime(form['batFabricationDate_input'], '%Y/%m/%d'),
+                                tech=form['batTechnology_input'],
+                                cells_num=int(form['batCellsNumber_input']),
+                                cell_volt_min=int(float(form['batMinCellVoltage_input'])*1000),
+                                cell_volt_max=int(float(form['batMaxCellVoltage_input'])*1000),
+                                volt_min=int(float(form['batMinVoltage_input'])*1000),
+                                volt_max=int(float(form['batMaxVoltage_input'])*1000),
+                                curr_min=int(float(form['batMinCurrent_input'])*1000),
+                                curr_max=int(float(form['batMaxCurrent_input'])*1000),
                             )
-        new_battery.save()
+        newBattery.save()
 
-        if new_battery.tech == 'Lithium':
-            new_lithium = Lithium(   bat_id = new_battery,
+        if newBattery.tech == 'Lithium':
+            newLithium = Lithium(   bat_id = newBattery,
                                     capacity = int(float(form['batCapacityLithium_input'])*1000),
                                     chemistry = form['batChemistryLithium_input'],
                                 )
-            new_lithium.save()
+            newLithium.save()
 
-        elif new_battery.tech == 'LeadAcid':
-            new_lead_acid = Leadacid( bat_id = new_battery,
+        elif newBattery.tech == 'LeadAcid':
+            newLeadAcid = Leadacid( bat_id = newBattery,
                                     capacity = int(float(form['batCapacityLeadAcid_input'])*1000),
                                     chemistry = form['batChemistryLeadAcid_input'],
                                   )
-            new_lead_acid.save()
+            newLeadAcid.save()
 
-        elif new_battery.tech == 'RedoxStack':
-            new_redox_stack = Redoxstack( bat_id = new_battery,
-                    electrode_size = int(float(form['redoxElectrodeSize_input'])*100),
-                    electrode_composition = form['redoxElectrodeComposition_input'],
-                    bipolar_type = BipolarType_e(form['redoxBipolarType_input']).value,
-                    membrane_type = MembraneType_e(form['redoxMembraneType_input']).value,
-                    electrolyte_type = ElectrolyteType_e(form['redoxElectrolyteType_input']).value
+        elif newBattery.tech == 'RedoxStack':
+            newRedoxStack = Redoxstack( bat_id = newBattery,
+                                        electrode_size = int(float(form['redoxElectrodeSize_input'])*100),
+                                        electrode_composition = form['redoxElectrodeComposition_input'],
+                                        bipolar_type = BipolarType_e(form['redoxBipolarType_input']).value,
+                                        membrane_type = MembraneType_e(form['redoxMembraneType_input']).value,
+                                        electrolyte_type = ElectrolyteType_e(form['redoxElectrolyteType_input']).value
                                       )
-            new_redox_stack.save()
+            newRedoxStack.save()
 
     return redirect('/add_experiment')
 
 
-def validate_profile(request):
-    """
-    Validates the profile based on the given request data.
-
-    Args:
-        request (HttpRequest): The HTTP request object containing the profile data.
-
-    Returns:
-        HttpResponse: The JSON response indicating whether the profile is valid or not,
-        along with an error message if applicable.
-    """
-
+def validateProfile(request):
     file = ques.Crotolamo_c(request.POST['text'])
     is_valid = True
     error_msg = ''
@@ -531,16 +414,7 @@ def validate_profile(request):
     return HttpResponse(json.dumps({'is_valid': is_valid, 'error_msg': error_msg}))
 
 
-def validate_field(request):
-    """
-    Validates a field in a table based on the provided parameters.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The HTTP response containing a JSON object with the 'exists' key indicating if the field exists or not.
-    """
+def validateField(request):
     post_dict = dict(request.POST)
     table = post_dict['table'][0]
     column = post_dict['column'][0]
@@ -557,18 +431,6 @@ def validate_field(request):
 
 
 def experiments(request):
-    """
-    View function for displaying experiments.
-
-    This function retrieves data from various models and passes it to the template for rendering.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The HTTP response object containing the rendered template.
-
-    """
     technology_list = [tech[0] for tech in Technology_e.choices]
 
     battery_list = []
@@ -599,16 +461,7 @@ def experiments(request):
     return render(request, 'experiments.html', context)
 
 
-def apply_experiments_filters(request):
-    """
-    Apply filters to experiments based on the provided request.
-
-    Args:
-        request (HttpRequest): The HTTP request object.
-
-    Returns:
-        HttpResponse: The HTTP response containing the filtered experiments in JSON format.
-    """
+def applyExperimentsFilters(request):
     post_dict = dict(request.POST)
     input_select = post_dict['input_select']
     # print(f"Full REQUEST -> {request.POST}\n")
@@ -618,6 +471,7 @@ def apply_experiments_filters(request):
         'cycle_station': json.loads(post_dict['filters_cycle_station'][0]),
         'profile': json.loads(post_dict['filters_profile'][0]),
     }
+
 
     batteries = []
     if len(filters['battery']) > 0:
@@ -663,7 +517,7 @@ def apply_experiments_filters(request):
         'battery_list': [{'id' : battery.bat_id, 'name' : battery.name, 'tech' : battery.tech} for battery in batteries],
         'cycle_station_list': [{'id' : cycle_station.cs_id, 'name' : cycle_station.name} for cycle_station in cycle_stations],
         'profile_list': [{'id' : profile.prof_id, 'name' : profile.name} for profile in profiles],
-        'experiment_list': [{'id' : experiment.exp_id, 'sn' : experiment.bat_id.sn, 'name' : experiment.name, 'description' : experiment.description, 'date_begin' : experiment.date_begin.strftime("%Y/%m/%d, %H:%M:%S") if experiment.date_begin is not None else None, 'date_finish' : experiment.date_finish.strftime("%Y/%m/%d, %H:%M:%S") if experiment.date_finish is not None else None, 'status' : experiment.status} for experiment in experiments_list],
+        'experiment_list': [{'id' : experiment.exp_id, 'name' : experiment.name, 'description' : experiment.description, 'date_begin' : experiment.date_begin.strftime("%Y/%m/%d, %H:%M:%S") if experiment.date_begin is not None else None, 'date_finish' : experiment.date_finish.strftime("%Y/%m/%d, %H:%M:%S") if experiment.date_finish is not None else None, 'status' : experiment.status} for experiment in experiments_list],
         'bats': list(bats),
         'stations': list(stations),
         'profs': list(prof),

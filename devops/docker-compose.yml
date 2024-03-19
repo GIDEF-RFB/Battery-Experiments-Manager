@@ -20,7 +20,7 @@ services:
     build:
       context: ../
       dockerfile: ./devops/mn_manager/Dockerfile.mn_manager
-    image: javibu13/wattrex-mn-manager:latest
+    image: gideficb/rfb-mn-manager:latest
     container_name: wattrex_mn_manager
     restart: always
     ipc: host
