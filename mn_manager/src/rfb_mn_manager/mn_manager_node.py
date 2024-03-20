@@ -31,7 +31,7 @@ from .mn_db_facade import DbFacadeC
 #######################              ENUMS               #######################
 
 ######################             CONSTANTS              ######################
-from .context import (DEFAULT_MN_NODE_NAME, DEFAULT_NODE_PERIOD)
+from .context import (DEFAULT_MN_NODE_NAME, DEFAULT_NODE_PERIOD, DEFAULT_DATA_SIZE)
 MN_REQS_CHAN_NAME = 'mn_reqs'
 MN_DATA_CHAN_NAME = 'mn_data'
 
@@ -53,7 +53,7 @@ class MnManagerNodeC(SysShdNodeC): # pylint: disable=abstract-method
                                                             max_message_size=350,
                                                             max_msg=350)
         self.mn_data_chan : SysShdIpcChanC = SysShdIpcChanC(name=MN_DATA_CHAN_NAME,
-                                                            max_message_size=350,
+                                                            max_message_size=DEFAULT_DATA_SIZE,
                                                             max_msg=350)
         self.db_facha : DbFacadeC = DbFacadeC()
         avail_cus : List[int] = self.db_facha.get_available_cus()
