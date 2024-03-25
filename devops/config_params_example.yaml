@@ -7,3 +7,11 @@ rfb_shared_tool:
 
 rfb_driver_db:
   DEFAULT_CRED_FILEPATH: '~/Battery-Experiments-Manager/devops/mn_manager/.cred.yaml'
+
+#################### MN MANAGER ####################
+rfb_mn_manager:
+  DEFAULT_CRED_FILEPATH               : 'devops/mn_manager/.cred.yaml' #Max number of allowed message per chan
+  DEFAULT_MN_NODE_NAME                : 'cu_manager_node'
+  DEFAULT_NODE_PERIOD                 : 750 # ms # Period of the node
+  DEFAULT_TIMEOUT_BETWEEN_CONNECTIONS : 15
+  DEFAULT_DATA_SIZE                   : 900 # Max size of the data message
