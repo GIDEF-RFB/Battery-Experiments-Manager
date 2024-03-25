@@ -128,22 +128,24 @@ required_file_list=("docker-compose.yml" "dev-docker-compose.yml"
                     "broker_mqtt/docker-compose.yml"
                     "broker_mqtt/enabled_plugins"
                     )
-optional_file_list=("config_params.yaml"
-                    "web_server/log_config.yaml"
-                    "mn_manager/log_config.yaml"
+optional_file_list=("config_params"
+                    "web_server/log_config"
+                    "mn_manager/log_config"
                     )
 
-for file_path in ${required_file_list[@]}
+for file in ${required_file_list[@]}
 do
+    file_path=./devops/${file}
     if [ ! -f ${file_path} ]; then
         echo "${file_path} not found"
         exit 1
     fi
 done
 
-for file_path in ${optional_file_list[@]}
+for file in ${optional_file_list[@]}
 do
     # echo "Checking ${file_path} file..."
+    file_path=./devops/${file}
     if test ! -f ${file_path}.yaml ; then
         echo "${file_path} not found, making a copy from example"
         cp ${file_path}_example.yaml ${file_path}.yaml
