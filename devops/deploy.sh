@@ -120,9 +120,11 @@ then
 fi
 
 # Check if the required files are present.
-required_file_list=("docker-compose.yml" "dev-docker-compose.yml"
+required_file_list=("docker-compose.yml"
+                    "dev-docker-compose.yml"
                     "web_server/.cred.env"
-                    "mn_manager/.cred.yaml" "master_db/.cred.env"
+                    "mn_manager/.cred.yaml"
+                    "master_db/.cred.env"
                     "master_db/createMasterCyclerTables.sql"
                     "master_db/insertDeviceInfoToMaster.sql" "broker_mqtt/.cred.env"
                     "broker_mqtt/docker-compose.yml"
