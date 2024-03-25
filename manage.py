@@ -4,7 +4,7 @@ import os
 import sys
 
 #######################    SYSTEM ABSTRACTION IMPORTS    #######################
-from system_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
+from rfb_logger_tool import sys_log_logger_get_module_logger, SysLogLoggerC, Logger
 
 #######################       LOGGER CONFIGURATION       #######################
 if __name__ == '__main__':

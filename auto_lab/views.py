@@ -16,18 +16,18 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from plotly import io as pio
 
-from wattrex_cycler_datatypes.comm_data import CommDataMnCmdDataC, CommDataMnCmdTypeE
-from wattrex_mn_manager import MN_REQS_CHAN_NAME, MN_DATA_CHAN_NAME
-from system_shared_tool import SysShdIpcChanC
+from rfb_cycler_datatypes.comm_data import CommDataMnCmdDataC, CommDataMnCmdTypeE
+from rfb_mn_manager import MN_REQS_CHAN_NAME, MN_DATA_CHAN_NAME
+from rfb_shared_tool import SysShdIpcChanC
 
-from auto_lab.models import Alarm, Battery, Compatibledevices, Computationalunit, \
-                                Cyclerstation, Experiment, Extendedmeasures, Genericmeasures, \
-                                Instructions, Leadacid, Lithium, Profile, \
-                                Redoxelectrolyte, Redoxstack, Devicestatus, Useddevices, \
-                                Usedmeasures, Availablemeasures, Detecteddevices
-from auto_lab.models_types import Technology_e, Chemistry_Lithium_e, Chemistry_LeadAcid_e, BipolarType_e, \
-                         MembraneType_e, ElectrolyteType_e, DeviceType_e, Available_e, ExperimentStatus_e, \
-                         DeviceStatus_e, Mode_e, LimitType_e, ConnStatus_e, Polarity_e
+from auto_lab.models import (Alarm, Battery, Compatibledevices, Computationalunit,
+                                Cyclerstation, Experiment, Extendedmeasures, Genericmeasures,
+                                Instructions, Leadacid, Lithium, Profile,
+                                Redoxelectrolyte, Redoxstack, Devicestatus, Useddevices,
+                                Usedmeasures, Availablemeasures, Detecteddevices)
+from auto_lab.models_types import (Technology_e, Chemistry_Lithium_e, Chemistry_LeadAcid_e, BipolarType_e,
+                         MembraneType_e, ElectrolyteType_e, DeviceType_e, Available_e, ExperimentStatus_e,
+                         DeviceStatus_e, Mode_e, LimitType_e, ConnStatus_e, Polarity_e)
 from auto_lab.validator import ques
 from auto_lab.analyzer import analyzer, stringToInstructions
 
@@ -36,9 +36,19 @@ _MN_REQ_CHAN : SysShdIpcChanC = SysShdIpcChanC(name=MN_REQS_CHAN_NAME)
 _MN_DATA_CHAN : SysShdIpcChanC = SysShdIpcChanC(name=MN_DATA_CHAN_NAME)
 
 def graph(request):
-    someDict = {'equipmentSelected': {'children': 'Empty'}}
+    """
+    Renders the 'graph.html' template with the given context.
+
+    Args:
+        request: The HTTP request object.
+
+    Returns:
+        A rendered HTML response.
+
+    """
+    some_dict = {'equipmentSelected': {'children': 'Empty'}}
     context = {
-        'some_dict':someDict,
+        'some_dict': some_dict,
     }
     return render(request, 'graph.html', context)
 
@@ -372,22 +382,27 @@ def validateProfile(request):
             raise Exception('No battery or cycler station selected')
         battery = Battery.objects.get(bat_id=battery_id)
         used_devices = Useddevices.objects.filter(cs_id=cycler_station_id)
-        volt_max, volt_min, curr_max, curr_min = battery.volt_max, battery.volt_min, battery.curr_max, battery.curr_min
+        volt_max, volt_min = battery.volt_max, battery.volt_min
+        curr_max, curr_min = battery.curr_max, battery.curr_min
         for device in used_devices:
-            if device.dev_id.comp_dev_id.volt_min is not None and device.dev_id.comp_dev_id.volt_max is not None\
-               and device.dev_id.comp_dev_id.curr_min is not None and device.dev_id.comp_dev_id.curr_max is not None:
-                if device.dev_id.comp_dev_id.volt_min > volt_min:
-                    volt_min = device.dev_id.comp_dev_id.volt_min
-                if device.dev_id.comp_dev_id.volt_max < volt_max:
-                    volt_max = device.dev_id.comp_dev_id.volt_max
-                if device.dev_id.comp_dev_id.curr_min > curr_min:
-                    curr_min = device.dev_id.comp_dev_id.curr_min
-                if device.dev_id.comp_dev_id.curr_max < curr_max:
-                    curr_max = device.dev_id.comp_dev_id.curr_max
+            if  (device.dev_id.comp_dev_id.volt_min is not None and
+                    device.dev_id.comp_dev_id.volt_min > volt_min):
+                volt_min = device.dev_id.comp_dev_id.volt_min
+            if (device.dev_id.comp_dev_id.volt_max is not None and
+                device.dev_id.comp_dev_id.volt_max < volt_max):
+                volt_max = device.dev_id.comp_dev_id.volt_max
+            if (device.dev_id.comp_dev_id.curr_min is not None and
+                device.dev_id.comp_dev_id.curr_min > curr_min):
+                curr_min = device.dev_id.comp_dev_id.curr_min
+            if (device.dev_id.comp_dev_id.curr_max is not None and
+                device.dev_id.comp_dev_id.curr_max < curr_max):
+                curr_max = device.dev_id.comp_dev_id.curr_max
         if tmp_analyzer.curr_max > curr_max or tmp_analyzer.curr_min < curr_min:
-            error_msg = 'Current out of range'
+            error_msg = (f'Current out of range, Min: Dev {curr_min}>{tmp_analyzer.curr_min} inst, '
+                         f'Max: inst {tmp_analyzer.curr_max}>{curr_max} Dev')
             is_valid = False
-        if tmp_analyzer.volt_max is not None and (tmp_analyzer.volt_max > volt_max or tmp_analyzer.volt_min < volt_min):
+        if (tmp_analyzer.volt_max is not None and
+            (tmp_analyzer.volt_max > volt_max or tmp_analyzer.volt_min < volt_min)):
             error_msg = 'Voltage out of range'
             is_valid = False
 
@@ -433,7 +448,8 @@ def experiments(request):
 
     experiments_list = []
     for experiment in Experiment.objects.all().select_related('cs_id', 'bat_id', 'prof_id'):
-        experiments_list.append([experiment, experiment.cs_id.name, experiment.bat_id, experiment.prof_id.name])
+        experiments_list.append([experiment, experiment.cs_id.name,
+                                 experiment.bat_id, experiment.prof_id.name])
 
     context = {
         'battery_list': battery_list,
@@ -456,10 +472,12 @@ def applyExperimentsFilters(request):
         'profile': json.loads(post_dict['filters_profile'][0]),
     }
 
+
     batteries = []
     if len(filters['battery']) > 0:
         if len(filters['technology']) > 0:
-            batteries = Battery.objects.filter(tech__in=filters['technology']).filter(bat_id__in=filters['battery'])
+            batteries = Battery.objects.filter(
+                tech__in=filters['technology']).filter(bat_id__in=filters['battery'])
         else:
             batteries = Battery.objects.filter(bat_id__in=filters['battery'])
     else:
@@ -484,8 +502,11 @@ def applyExperimentsFilters(request):
     bats = set()
     stations = set()
     prof = set()
-    for experiment in Experiment.objects.filter(bat_id__in=[_battery.bat_id for _battery in batteries]).filter(cs_id__in=[_cs.cs_id for _cs in cycle_stations]).filter(prof_id__in=[_profile.prof_id for _profile in profiles]).select_related('cs_id', 'bat_id', 'prof_id'):
-        # experiments_list.append([experiment, experiment.cs_id.name, experiment.bat_id, experiment.prof_id.name])
+    for experiment in Experiment.objects.filter(
+        bat_id__in=[_battery.bat_id for _battery in batteries]).filter(
+        cs_id__in=[_cs.cs_id for _cs in cycle_stations]).filter(
+        prof_id__in=[_profile.prof_id for _profile in profiles]).select_related(
+        'cs_id', 'bat_id', 'prof_id'):
         experiments_list.append(experiment)
         bats.add(experiment.bat_id.bat_id)
         stations.add(experiment.cs_id.cs_id)
@@ -496,7 +517,7 @@ def applyExperimentsFilters(request):
         'battery_list': [{'id' : battery.bat_id, 'name' : battery.name, 'tech' : battery.tech} for battery in batteries],
         'cycle_station_list': [{'id' : cycle_station.cs_id, 'name' : cycle_station.name} for cycle_station in cycle_stations],
         'profile_list': [{'id' : profile.prof_id, 'name' : profile.name} for profile in profiles],
-        'experiment_list': [{'id' : experiment.exp_id, 'sn' : experiment.bat_id.sn, 'name' : experiment.name, 'description' : experiment.description, 'date_begin' : experiment.date_begin.strftime("%Y/%m/%d, %H:%M:%S") if experiment.date_begin is not None else None, 'date_finish' : experiment.date_finish.strftime("%Y/%m/%d, %H:%M:%S") if experiment.date_finish is not None else None, 'status' : experiment.status} for experiment in experiments_list],
+        'experiment_list': [{'id' : experiment.exp_id, 'name' : experiment.name, 'description' : experiment.description, 'date_begin' : experiment.date_begin.strftime("%Y/%m/%d, %H:%M:%S") if experiment.date_begin is not None else None, 'date_finish' : experiment.date_finish.strftime("%Y/%m/%d, %H:%M:%S") if experiment.date_finish is not None else None, 'status' : experiment.status} for experiment in experiments_list],
         'bats': list(bats),
         'stations': list(stations),
         'profs': list(prof),
