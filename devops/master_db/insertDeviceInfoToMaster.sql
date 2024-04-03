@@ -3,8 +3,8 @@ INSERT INTO `CompatibleDevices` (`CompDevID`, `Name`, `Manufacturer`, `Model`, `
     (3, 'BMS', 'Liftec', '0', 'Bms', 0, NULL, NULL, NULL, NULL),
     (4, 'SOURCE', 'EA', 'PS_2042-20B', 'Source', 0, 0, 42000, 0, 20000),
     (5, 'LOAD', 'RS', 'KEL-103', 'Load', 0, 0, 120000, 0, 30000),
-    (6, 'BISOURCE', 'EPS', 'PSB_10200-420', 'BiSource', 0, 0, 200000, -420000, 420000);
-
+    (6, 'BISOURCE', 'EPS', 'PSB_10200-420', 'BiSource', 0, 0, 200000, -420000, 420000),
+    (7, 'SOURCE_2CH', 'EA', 'PS_2384-05_B', 'Source', 0, 0, 84000, 0, 5000);
 
 INSERT INTO `AvailableMeasures` (`MeasType`, `CompDevID`, `MeasName`) VALUES
     (1, 2, 'hs_voltage'),
@@ -38,4 +38,25 @@ INSERT INTO `AvailableMeasures` (`MeasType`, `CompDevID`, `MeasName`) VALUES
     (29, 5, 'power'),
     (30, 6, 'voltage'),
     (31, 6, 'current'),
-    (32, 6, 'power');
+    (32, 6, 'power'),
+    (33, 7, 'voltage'),
+    (34, 7, 'current'),
+    (35, 7, 'power');
+
+INSERT INTO `LinkConfiguration` (`CompDevID`, `Property`, `Value`) VALUES 
+    (4, 'baudrate', '9600');
+    (4, 'separator', '\\n'),
+    (4, 'timeout', '1'),
+    (4, 'write_timeout', '1'),
+    (5, 'baudrate', '115200'),
+    (5, 'separator', '\\n'),
+    (5, 'timeout', '1'),
+    (5, 'write_timeout', '1'),
+    (6, 'baudrate', '9600'),
+    (6, 'separator', '\\n'),
+    (6, 'timeout', '1'),
+    (6, 'write_timeout', '1'),
+    (7, 'baudrate', '9600'),
+    (7, 'separator', '\\n'),
+    (7, 'timeout', '1'),
+    (7, 'write_timeout', '1');
