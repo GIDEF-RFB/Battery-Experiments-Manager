@@ -44,7 +44,7 @@ INSERT INTO `AvailableMeasures` (`MeasType`, `CompDevID`, `MeasName`) VALUES
     (35, 7, 'power');
 
 INSERT INTO `LinkConfiguration` (`CompDevID`, `Property`, `Value`) VALUES 
-    (4, 'baudrate', '9600');
+    (4, 'baudrate', '9600'),
     (4, 'separator', '\\n'),
     (4, 'timeout', '1'),
     (4, 'write_timeout', '1'),
