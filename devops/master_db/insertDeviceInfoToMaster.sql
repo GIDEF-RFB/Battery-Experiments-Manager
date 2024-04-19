@@ -1,10 +1,16 @@
-INSERT INTO `CompatibleDevices` (`CompDevID`, `Name`, `Manufacturer`, `Model`, `DeviceType`, `MinSWVersion`, `VoltMin`, `VoltMax`, `CurrMin`, `CurrMax`) VALUES
+INSERT INTO `CompatibleDevices` (`CompDevID`, `Name`, `Manufacturer`, `Model`, `DeviceType`, `MinSWVersion`, `VoltMin`, `VoltMax`, `CurrMin`, `CurrMax`) VALUES 
+    (1, 'Virtual', 'Undefined', 'Undefined', 'BiSource', 0, 0, 9999999, -999999, 999999),
     (2, 'EPC', 'Wattrex', 'A', 'Epc', 0, 0, 6000, -15000, 15000),
     (3, 'BMS', 'Liftec', '0', 'Bms', 0, NULL, NULL, NULL, NULL),
-    (4, 'SOURCE', 'EA', 'PS_2042-20B', 'Source', 0, 0, 42000, 0, 20000),
-    (5, 'LOAD', 'RS', 'KEL-103', 'Load', 0, 0, 120000, 0, 30000),
-    (6, 'BISOURCE', 'EPS', 'PSB_10200-420', 'BiSource', 0, 0, 200000, -420000, 420000),
-    (7, 'SOURCE_2CH', 'EA', 'PS_2384-05_B', 'Source', 0, 0, 84000, 0, 5000);
+    (4, 'SOURCE_300W', 'EA', 'PS_2042-20_B', 'Source', 0, 0, 42000, NULL, 20000),
+    (5, 'LOAD', 'RS', 'KEL-103', 'Load', 0, NULL, 120000, NULL, 30000),
+    (6, 'BISOURCE_30kW_200V_420A', 'EPS', 'PSB_10200-420', 'BiSource', 0, 0, 200000, -420000, 420000),
+    (7, 'SOURCE_2Chan', 'EA', 'PS_2384-05_B', 'Source', 0, 0, 84000, NULL, 5000),
+    (8, 'BK', 'BK_Precision', '2831E', 'Bk', 0, 0, 84000, NULL, 20000),
+    (9, 'Source_100W', 'EA', 'PS_2042-06B', 'Source', 0, 0, 84000, NULL, 6000),
+    (10, 'BISOURCE_5kW_80V_120A', 'EPS', 'PSB_9080-120', 'BiSource', 0, 0, 80000, -120000, 120000),
+    (11, 'BISOURCE_30kW_500V_180A', 'EPS', 'PSB_10500-180', 'BiSource', 0, 0, 500000, -180000, 180000);
+
 
 INSERT INTO `AvailableMeasures` (`MeasType`, `CompDevID`, `MeasName`) VALUES
     (1, 2, 'hs_voltage'),
@@ -41,7 +47,18 @@ INSERT INTO `AvailableMeasures` (`MeasType`, `CompDevID`, `MeasName`) VALUES
     (32, 6, 'power'),
     (33, 7, 'voltage'),
     (34, 7, 'current'),
-    (35, 7, 'power');
+    (35, 7, 'power'),
+    (36, 8, 'voltage'),
+    (37, 8, 'current'),
+    (38, 9, 'voltage'),
+    (39, 9, 'current'),
+    (40, 9, 'power'),
+    (41, 10, 'voltage'),
+    (42, 10, 'current'),
+    (43, 10, 'power'),
+    (44, 11, 'voltage'),
+    (45, 11, 'current'),
+    (46, 11, 'power');
 
 INSERT INTO `LinkConfiguration` (`CompDevID`, `Property`, `Value`) VALUES 
     (4, 'baudrate', '9600'),
@@ -59,4 +76,20 @@ INSERT INTO `LinkConfiguration` (`CompDevID`, `Property`, `Value`) VALUES
     (7, 'baudrate', '9600'),
     (7, 'separator', '\\n'),
     (7, 'timeout', '1'),
-    (7, 'write_timeout', '1');
+    (7, 'write_timeout', '1'),
+    (8, 'baudrate', '38400'),
+    (8, 'separator', '\\n'),
+    (8, 'timeout', '1'),
+    (8, 'write_timeout', '1'),
+    (9, 'baudrate', '9600'),
+    (9, 'separator', '\\n'),
+    (9, 'timeout', '1'),
+    (9, 'write_timeout', '1'),
+    (10, 'baudrate', '9600'),
+    (10, 'separator', '\\n'),
+    (10, 'timeout', '1'),
+    (10, 'write_timeout', '1'),
+    (11, 'baudrate', '9600'),
+    (11, 'separator', '\\n'),
+    (11, 'timeout', '1'),
+    (11, 'write_timeout', '1');
