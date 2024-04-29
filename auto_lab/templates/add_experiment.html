@@ -28,11 +28,11 @@
 
                             <div class="form-group row">
                                 <div class="form-group col-8 col-xl-4">
-                                    <label for="expBattery">Battery Serial N.º</label>
+                                    <label for="expBattery">Battery Name</label>
                                     <div class="align-items-center" style="display: flex">
                                         <select name="expBattery_input" id="expBattery" class="" data-title="Select Battery..." data-live-search="true" data-size="8" required>
                                             {% for battery in batteries %}
-                                                <option data-tokens="{{ battery.tech }} {{ battery.name }}" value="{{ battery.bat_id }}" label="{{ battery.tech }}">{{ battery.sn }}</option>
+                                                <option data-tokens="{{ battery.tech }} {{ battery.name }}" value="{{ battery.bat_id }}" label="{{ battery.tech }}">{{ battery.name }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>

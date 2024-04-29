@@ -1,5 +1,5 @@
-system-logger-tool
-system-shared-tool
-wattrex-cycler-datatypes
-wattrex-driver-mqtt
-wattrex-driver-db>=0.0.16
+rfb-logger-tool
+rfb-shared-tool
+rfb-cycler-datatypes
+rfb-driver-mqtt
+rfb-driver-db>=0.0.16

@@ -1,6 +1,6 @@
-import os, sys
-from time import gmtime, strftime, time, localtime
-from datetime import datetime, timedelta, timezone
+import os
+from time import time
+from datetime import datetime
 import csv
 import json
 
@@ -37,7 +37,7 @@ _MN_DATA_CHAN : SysShdIpcChanC = SysShdIpcChanC(name=MN_DATA_CHAN_NAME)
 
 def graph(request):
     """
-    Renders the 'graph.html' template with the given context.
+       Renders the 'graph.html' template with the given context.
 
     Args:
         request: The HTTP request object.
@@ -46,9 +46,9 @@ def graph(request):
         A rendered HTML response.
 
     """
-    some_dict = {'equipmentSelected': {'children': 'Empty'}}
+    someDict = {'equipmentSelected': {'children': 'Empty'}}
     context = {
-        'some_dict': some_dict,
+        'some_dict':someDict,
     }
     return render(request, 'graph.html', context)
 
@@ -75,16 +75,15 @@ def monitor_selected(request, cs_id_selected): #TODO: Hacer que si un equipo est
     experiments_selected = Experiment.objects.filter(cs_id=cs_id_selected).filter(status__in=['RUNNING', 'PAUSE']).order_by('-exp_id').first()
     profile_selected = Profile.objects.get(prof_id=experiments_selected.prof_id.prof_id)
 
-    last_profile_instr = Instructions.objects.order_by('-instr_id').select_related('prof_id').first()
-
-    last_profile_instr = Instructions.objects.filter(prof_id=profile_selected).order_by('-instr_id').first()
+    all_profile_instr = Instructions.objects.filter(prof_id=profile_selected).order_by('instr_id').all()
     last_meas_instr = Genericmeasures.objects.filter(exp_id=experiments_selected).order_by('-meas_id').select_related('instr_id').first()
-
+    actual_instr_id = last_meas_instr.instr_id.instr_id if last_meas_instr is not None else None
+    actual_instr = all_profile_instr[actual_instr_id-1]
     profile_instr = {
         'prof_id': profile_selected.prof_id if profile_selected is not None else None,
         'last_instr': last_meas_instr.instr_id if last_meas_instr is not None else None,
-        'total_n_instr': last_profile_instr.instr_id if last_profile_instr is not None else None,
-        'instr': f'{last_meas_instr.instr_id.mode}, {last_meas_instr.instr_id.set_point/1000}, {last_meas_instr.instr_id.limit_type}, {last_meas_instr.instr_id.limit_point/1000}' if last_meas_instr is not None else None,
+        'total_n_instr': len(all_profile_instr) if all_profile_instr is not None else None,
+        'instr': f'{actual_instr.mode}, {actual_instr.set_point/1000}, {actual_instr.limit_type}, {actual_instr.limit_point/1000}' if actual_instr is not None else None,
     }
     if experiments_selected is not None:
         different_extended_measures = Extendedmeasures.objects.filter(exp_id=experiments_selected).values_list('used_meas_id', flat=True).distinct()
@@ -108,9 +107,11 @@ def form_submit_experiment(request):
     if request.method == 'POST':
         form = request.POST
         print(form)
+        date = datetime.now()
         newExperiment = Experiment( name=form['expName_input'],
                                     description=form['expDescription_input'],
-                                    date_creation=strftime("%Y-%m-%d %H:%M:%S", gmtime()),
+                                    # date_creation=strftime("%Y-%m-%d %H:%M:%S", gmtime()),
+                                    date_creation=date.strftime("%Y-%m-%d %H:%M:%S"),
                                     status='QUEUED',
                                     cs_id=Cyclerstation.objects.get(cs_id=form['expEquipment_input']),
                                     bat_id=Battery.objects.get(bat_id=form['expBattery_input']),
@@ -176,7 +177,8 @@ def form_import_experiment(request):
         except ValueError as e:
             instructions_given = False
 
-        extended_measures_selected_names_and_id = {Measuresdeclaration.objects.get(meas_type=meas_type).meas_name.lower() : meas_type for meas_type in extended_measures_selected}
+        # extended_measures_selected_names_and_id = {Measuresdeclaration.objects.get(meas_type=meas_type).meas_name.lower() : meas_type for meas_type in extended_measures_selected}
+        extended_measures_selected_names_and_id = {Extendedmeasures.objects.get(meas_type=meas_type).meas_name.lower() : meas_type for meas_type in extended_measures_selected}
 
         stored_time = time()
 
@@ -235,12 +237,12 @@ def form_import_experiment(request):
         line_count = 0
         csv_reader = csv.reader(file_read, delimiter=',')
         # print(profilefile.read().decode('utf-8').splitlines())
-
+        date = datetime.now()
         newExperiment = Experiment( name=form['expName_input'],
                                     description=form['expDescription_input'],
-                                    date_creation=strftime("%Y-%m-%d %H:%M:%S", localtime()),
-                                    date_begin=strftime("%Y-%m-%d %H:%M:%S", localtime()),
-                                    date_finish=strftime("%Y-%m-%d %H:%M:%S", localtime()),
+                                    date_creation=date.strftime("%Y-%m-%d %H:%M:%S"),
+                                    date_begin=date.strftime("%Y-%m-%d %H:%M:%S"),
+                                    date_finish=date.strftime("%Y-%m-%d %H:%M:%S"),
                                     status='FINISHED',
                                     cs_id=Cyclerstation.objects.get(name = "Virtual", cs_id = 1),
                                     bat_id=Battery.objects.get(bat_id=form['expBattery_input']),
@@ -529,15 +531,22 @@ def applyExperimentsFilters(request):
 def getNewMeasures(request):
     post_dict = dict(request.POST)
     # print(post_dict['last_meas_id'])
+    print(post_dict)
     last_meas_id = post_dict['last_meas_id'][0]
-    # print(last_meas_id)
+    # time_window = post_dict['time_window'][0]
+    # print(f"{last_meas_date}  -  {type(last_meas_date)}\n")
+    # last_meas_date = datetime.strptime(last_meas_date.replace('"',''), '%Y-%m-%d %H:%M:%S.%f')
+    # last_meas_date = json.dumps(last_meas_date)
     meas_numeric_list = json.loads(post_dict['meas_numeric_list'][0])
     # print(meas_numeric_list)
+    # new_generic_measures = Genericmeasures.objects.filter(exp_id=post_dict['experiment_id'][0]).order_by('-meas_id')[:int(time_window)]
     new_generic_measures = Genericmeasures.objects.filter(exp_id=post_dict['experiment_id'][0]).filter(meas_id__gt=last_meas_id).order_by('meas_id')
+    # new_extended_measures = Extendedmeasures.objects.filter(exp_id=post_dict['experiment_id'][0]).order_by('-meas_id')[:int(time_window)]
     new_extended_measures = Extendedmeasures.objects.filter(exp_id=post_dict['experiment_id'][0]).filter(meas_id__gt=last_meas_id).order_by('meas_id')
-
     new_meas = {}
     new_meas_ids = list(new_generic_measures.values_list('meas_id', flat=True))
+    # new_meas_ids = list(new_generic_measures.values_list('timestamp'))
+    # new_meas_ids = [(meas[0].strftime("%Y-%m-%d %H:%M:%S.%f"),) for meas in new_meas_ids]
     new_meas['Voltage'] = []
     new_meas['Current'] = []
     for meas_id in new_generic_measures:
@@ -691,7 +700,7 @@ def loadReportTemplate(request, exp_id_selected, override_base = None, graph_fon
     if experiment_selected.date_finish != None:
         experiment_duration = experiment_selected.date_finish - experiment_selected.date_begin
     elif experiment_selected.date_begin != None:
-        experiment_duration = datetime.now(timezone.utc) - experiment_selected.date_begin
+        experiment_duration = datetime.now() - experiment_selected.date_begin
     else:
         experiment_duration = None
     # used_equipments = Useddevices.objects.filter(cs_id=experiment_selected.cs_id)
@@ -733,21 +742,33 @@ def loadReportTemplate(request, exp_id_selected, override_base = None, graph_fon
 def getNewGraph(request):
     post_dict = dict(request.POST)
     meas_numeric_list = json.loads(post_dict['meas_numeric_list'][0])
-    # print(meas_numeric_list)
     last_meas_id = Genericmeasures.objects.filter(exp_id=post_dict['experiment_id'][0]).order_by('-meas_id').first()
     # print(last_meas_id.meas_id)
     limit_time = int(post_dict['time_window'][0])
-    new_generic_measures = Genericmeasures.objects.filter(exp_id=post_dict['experiment_id'][0]).filter(meas_id__gt=max(0, (last_meas_id.meas_id-limit_time))).order_by('meas_id')
-    new_extended_measures = Extendedmeasures.objects.filter(exp_id=post_dict['experiment_id'][0]).filter(meas_id__gt=max(0, (last_meas_id.meas_id-limit_time))).order_by('meas_id')
-
+    if limit_time == -1:
+        new_generic_measures = Genericmeasures.objects.filter(exp_id=post_dict['experiment_id'][0])\
+        .order_by('meas_id').all()
+        new_extended_measures = Extendedmeasures.objects.filter(exp_id=post_dict['experiment_id'][0])\
+        .order_by('meas_id').all()
+    else:
+        new_generic_measures = Genericmeasures.objects.filter(exp_id=post_dict['experiment_id'][0])\
+        .filter(meas_id__gt=max(0, (last_meas_id.meas_id-limit_time))).order_by('meas_id')
+        new_extended_measures = Extendedmeasures.objects.filter(exp_id=post_dict['experiment_id'][0])\
+        .filter(meas_id__gt=max(0, (last_meas_id.meas_id-limit_time))).order_by('meas_id')
+    # .order_by('-meas_id')[:int(limit_time)]
+    print(f"\033[91m Time window: {limit_time}\033[0m")
+    print(f"\033[92m Number gen meas: {len(new_generic_measures)}\033[0m")
     new_meas = {}
     new_meas_ids = list(new_generic_measures.values_list('meas_id', flat=True))
+    # new_meas_time = list(new_generic_measures.values_list('timestamp'))
     # print(new_meas_ids)
     new_meas['Voltage'] = []
     new_meas['Current'] = []
+    new_meas['Power'] = []
     for meas_id in new_generic_measures:
         new_meas['Voltage'].append(meas_id.voltage/1000.0)
         new_meas['Current'].append(meas_id.current/1000.0)
+        new_meas['Power'].append(meas_id.power/1000.0)
     for ext_meas_numeric in meas_numeric_list:
         if ext_meas_numeric != -1:
             temp_ext_meas = new_extended_measures.filter(used_meas_id=ext_meas_numeric).values_list('value', flat=True)
@@ -756,6 +777,7 @@ def getNewGraph(request):
     response = {
         'newMeas': new_meas,
         'newMeasIds': new_meas_ids,
+        # 'newMeasTime': new_meas_time,
     }
     return HttpResponse(json.dumps(response))
 
@@ -769,13 +791,17 @@ def graphLive(exp_id_selected, time_window=300, only_data=False):
         last_meas_id = last_meas_id.meas_id
         generic_measures = Genericmeasures.objects.filter(exp_id=exp_id_selected).order_by('meas_id').filter(meas_id__gte=max(0, last_meas_id-time_window))
         x_meas_id = []
+        x_meas_date = []
         y_measures = {}
         y_measures['voltage'] = []
         y_measures['current'] = []
+        y_measures['power'] = []
         for meas in generic_measures:
             x_meas_id.append(meas.meas_id)
+            x_meas_date.append(meas.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"))
             y_measures['voltage'].append(meas.voltage/1000.0)
             y_measures['current'].append(meas.current/1000.0)
+            y_measures['power'].append(meas.power/1000.0)
 
         extended_measures = Extendedmeasures.objects.filter(exp_id=exp_id_selected).order_by('meas_id').filter(meas_id__gte=max(0, last_meas_id-time_window))
         different_extended_measures = extended_measures.values_list('used_meas_id', flat=True).distinct()
@@ -788,6 +814,7 @@ def graphLive(exp_id_selected, time_window=300, only_data=False):
 
         fig.add_trace(go.Scatter(
             mode = 'lines+markers',
+            # x = x_meas_date,
             x = x_meas_id,
             y = y_measures['voltage'],
             name = str('voltage').capitalize(),
@@ -798,9 +825,20 @@ def graphLive(exp_id_selected, time_window=300, only_data=False):
 
         fig.add_trace(go.Scatter(
             mode = 'lines+markers',
+            # x = x_meas_date,
             x = x_meas_id,
             y = y_measures['current'],
             name = str('current').capitalize(),
+            marker=dict(size=5, symbol='pentagon'),  # Personalizar los marcadores
+            ),
+            secondary_y = True
+        )
+        fig.add_trace(go.Scatter(
+            mode = 'lines+markers',
+            # x = x_meas_date,
+            x = x_meas_id,
+            y = y_measures['power'],
+            name = str('power').capitalize(),
             marker=dict(size=5, symbol='pentagon'),  # Personalizar los marcadores
             ),
             secondary_y = True
@@ -809,6 +847,7 @@ def graphLive(exp_id_selected, time_window=300, only_data=False):
         for ext_meas in extended_measures_names:
             fig.add_trace(go.Scatter(
                 mode = 'lines+markers',
+                # x = x_meas_date,
                 x = x_meas_id,
                 y = y_measures[extended_measures_names[ext_meas]],
                 name = str(extended_measures_names[ext_meas]),#.capitalize(),
@@ -820,8 +859,8 @@ def graphLive(exp_id_selected, time_window=300, only_data=False):
 
         fig.update_xaxes(
             tickangle=-45,
-            title_text='Duration (s)',
-            ticksuffix='s',
+            title_text='Duration',
+            # ticksuffix='s',
         )
 
         fig.update_layout(
@@ -853,7 +892,8 @@ def graphLive(exp_id_selected, time_window=300, only_data=False):
             paper_bgcolor='#f8f9fa',
             xaxis=dict(gridcolor='lightgrey', title='Duration', mirror=True,
                     zeroline=True, zerolinewidth=1, zerolinecolor='lightgrey',
-                    range=range_x),
+                    range=range_x
+                    ),
             yaxis=dict(gridcolor='lightgrey',mirror=True, anchor='free',
                     #zeroline=True, zerolinewidth=1, zerolinecolor='lightgrey'
                     ),
@@ -896,14 +936,16 @@ def graphPreview(exp_id_selected, extended_measures_to_graph : bool = True, save
 
     MAX_NUMBER_OF_POINTS = 1000
     x_meas_id = []
+    x_meas_date = []
     y_measures = {}
 
     y_measures['voltage'] = []
     y_measures['current'] = []
+    y_measures['power'] = []
     query_generic_measures = \
     f'''
-        SELECT block, MIN(MeasID) AS first_block_row, AVG(Voltage/1000) AS avg_voltage, AVG(Current/1000) AS avg_current
-        FROM (SELECT GenericMeasures.MeasID AS MeasID, NTILE({MAX_NUMBER_OF_POINTS}) OVER (ORDER BY MeasID) AS Block, GenericMeasures.Voltage, GenericMeasures.Current AS Current FROM GenericMeasures WHERE ExpID={exp_id_selected}) AS Chunks
+        SELECT block, MIN(MeasID) AS first_block_row, AVG(Voltage/1000) AS avg_voltage, AVG(Current/1000) AS avg_current, AVG(Power/1000) AS avg_power, MIN(Timestamp) AS duration
+        FROM (SELECT GenericMeasures.MeasID AS MeasID, NTILE({MAX_NUMBER_OF_POINTS}) OVER (ORDER BY MeasID) AS Block, GenericMeasures.Timestamp, GenericMeasures.Voltage, GenericMeasures.Current, GenericMeasures.Power AS Power FROM GenericMeasures WHERE ExpID={exp_id_selected}) AS Chunks
         GROUP BY Block
     '''
 
@@ -917,7 +959,13 @@ def graphPreview(exp_id_selected, extended_measures_to_graph : bool = True, save
     for result in results:
         y_measures['voltage'].append(result['avg_voltage'])
         y_measures['current'].append(result['avg_current'])
+        if result['avg_power'] is None:
+            y_measures['power'].append(result['avg_voltage']*result['avg_current'])
+        else:
+            y_measures['power'].append(result['avg_power'])
         x_meas_id.append(result['first_block_row'])
+        timestamp = result['duration']
+        x_meas_date.append(timestamp)
 
     if extended_measures_to_graph:
         extended_measures = Extendedmeasures.objects.filter(exp_id=exp_id_selected).order_by('meas_id')
@@ -950,7 +998,7 @@ def graphPreview(exp_id_selected, extended_measures_to_graph : bool = True, save
 
     fig.add_trace(go.Scatter(
         mode = 'lines+markers',
-        x = x_meas_id,
+        x = x_meas_date,
         y = y_measures['voltage'],
         name = str('voltage').capitalize(),
         marker=dict(size=5, symbol='pentagon'),  # Personalizar los marcadores
@@ -960,9 +1008,18 @@ def graphPreview(exp_id_selected, extended_measures_to_graph : bool = True, save
 
     fig.add_trace(go.Scatter(
         mode = 'lines+markers',
-        x = x_meas_id,
+        x = x_meas_date,
         y = y_measures['current'],
         name = str('current').capitalize(),
+        marker=dict(size=5, symbol='pentagon'),  # Personalizar los marcadores
+        ),
+        secondary_y = True
+    )
+    fig.add_trace(go.Scatter(
+        mode = 'lines+markers',
+        x = x_meas_date,
+        y = y_measures['power'],
+        name = str('power').capitalize(),
         marker=dict(size=5, symbol='pentagon'),  # Personalizar los marcadores
         ),
         secondary_y = True
@@ -971,7 +1028,7 @@ def graphPreview(exp_id_selected, extended_measures_to_graph : bool = True, save
         for ext_meas in extended_measures_names:
             fig.add_trace(go.Scatter(
                 mode = 'lines+markers',
-                x = x_meas_id,
+                x = x_meas_date,
                 y = y_measures[extended_measures_names[ext_meas]],
                 name = str(extended_measures_names[ext_meas]),#.capitalize(),
                 marker=dict(size=5, symbol='pentagon'),  # Personalizar los marcadores
@@ -981,8 +1038,9 @@ def graphPreview(exp_id_selected, extended_measures_to_graph : bool = True, save
 
     fig.update_xaxes(
         tickangle=-45,
-        title_text='Duration (s)',
-        ticksuffix='s',
+        title_text='Duration',
+        # ticksuffix='s',
+        # tickformat='%H:%M:%S',
     )
 
 
@@ -999,17 +1057,18 @@ def graphPreview(exp_id_selected, extended_measures_to_graph : bool = True, save
     # fig.layout.yaxis2.ticksuffix=' A'
     fig.layout.yaxis2.title='Others'
 
-    if len(x_meas_id) > 0:
-        range_x=[x_meas_id[0]-1, x_meas_id[-1]+1]
-    else:
-        range_x=[0, 1]
+    # if len(x_meas_id) > 0:
+    #     range_x=[x_meas_id[0]-1, x_meas_id[-1]+1]
+    # else:
+    #     range_x=[0, 1]
 
     fig.update_layout(
         height=700,
         plot_bgcolor='white',
         xaxis=dict(gridcolor='lightgrey', title='Duration', mirror=True,
                    zeroline=True, zerolinewidth=1, zerolinecolor='lightgrey',
-                   range=range_x),
+                #    range=range_x
+                   ),
         yaxis=dict(gridcolor='lightgrey',mirror=True, anchor='free',
                    #zeroline=True, zerolinewidth=1, zerolinecolor='lightgrey'
                    ),
@@ -1172,15 +1231,16 @@ def getDetectedDevicesOfCu(request):
     response = {}
     http_response : HttpResponse = requestRefreshDevices(request)
     http_response_dict = json.loads(http_response.content)
+    print(f"HTTP Response: {http_response_dict}")
     if http_response_dict['status'] == 'OK':
         active_cs_ids = Cyclerstation.objects.filter(cu_id=cu_id).filter(deprecated=False)
         active_used_devices = Useddevices.objects.filter(cs_id__in=active_cs_ids)
         detected_devices = Detecteddevices.objects.filter(cu_id=cu_id).filter(conn_status=ConnStatus_e.CONNECTED.value)
         free_devices = detected_devices.exclude(dev_id__in=active_used_devices)
 
-        # print(f"Detected_devices: {detected_devices}")
-        # print(f"Used_devices: {active_used_devices}")
-        # print(f"Free_devices: {free_devices}")
+        print(f"Detected_devices: {detected_devices}")
+        print(f"Used_devices: {active_used_devices}")
+        print(f"Free_devices: {free_devices}")
 
         for device in free_devices:
             response[device.dev_id] = {'free': True, 'selected': False, 'sn': device.sn, 'name': device.comp_dev_id.name, 'device_type': device.comp_dev_id.device_type, 'available_measures': list(Availablemeasures.objects.filter(comp_dev_id=device.comp_dev_id).values('meas_type', 'meas_name'))}
@@ -1222,12 +1282,12 @@ def _launch_cs(cu_id, cs_id) -> None:
 
 
 def requestRefreshDevices(request) -> HttpResponse:
-    TIMEOUT = 20
+    TIMEOUT = 120
     post_dict = dict(request.POST)
     response = HttpResponse(json.dumps({'status': 'OK'}))
     if 'cu_id' in post_dict:
         cu_id = int(post_dict['cu_id'][0])
-        print(f'Requesting refresh devices of CU: ...')
+        print(f'Requesting refresh devices of CU: {cu_id}')
         cmd_to_mn_manager = CommDataMnCmdDataC(CommDataMnCmdTypeE.REQ_DETECT, cu_id)
         _MN_REQ_CHAN.send_data(cmd_to_mn_manager)
         try:
@@ -1239,6 +1299,8 @@ def requestRefreshDevices(request) -> HttpResponse:
             # TODO: Check if the response is the expected for exactly this request
             if refresh_confirm.cmd_type == CommDataMnCmdTypeE.INF_DEV:
                 print(f'Refresh confirm received!')
+                for device in refresh_confirm.devices:
+                    print(device.__dict__)
             else:
                 print(f'Unexpected response: {refresh_confirm}')
                 response = HttpResponse(json.dumps({'status': 'ERROR', 'message': 'Unexpected response'}))
@@ -1257,7 +1319,7 @@ def addNewCs(request):
     new_cs = Cyclerstation.objects.create(cu_id=Computationalunit.objects.get(cu_id=cu_id),
                                           name=post_dict['cs_name'][0],
                                           location=post_dict['cs_location'][0],
-                                          register_date=datetime.now(timezone.utc),
+                                          register_date=datetime.now(),
                                           deprecated=False)
     new_cs.save()
     new_used_devices = []
@@ -1302,7 +1364,7 @@ def modifyCs(request):
     new_cs = Cyclerstation.objects.create(cu_id=Computationalunit.objects.get(cu_id=cu_id),
                                           name=cs_to_deprecate.name,
                                           location=cs_to_deprecate.location,
-                                          register_date=datetime.now(timezone.utc),
+                                          register_date=datetime.now(),
                                           parent=cs_to_deprecate.cs_id,
                                           deprecated=False)
     new_cs.save()

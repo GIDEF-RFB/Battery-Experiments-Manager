@@ -176,6 +176,8 @@ case ${ARG1} in
         stop_mqtt
         ask_for_environment
         docker compose -f ./devops/${docker_compose_file} down
+        rm /dev/mqueue/mn_data
+        rm /dev/mqueue/mn_reqs
         ;;
     *)
         >&2 echo "[ERROR] Invalid command type: ${ARG1}"

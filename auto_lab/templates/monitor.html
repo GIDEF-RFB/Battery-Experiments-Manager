@@ -120,13 +120,21 @@
                             <div>
                                 <label for="time_window" style="margin-right: 7px;">Load last: </label>
                                 <select id="time_window" name="time_window" class=".selectpicker" data-size="8">
-                                    <option value="30">30 seconds</option>
+                                    <!-- <option value="30">30 seconds</option>
                                     <option value="60" selected>1 minute</option>
                                     <option value="300">5 minutes</option>
                                     <option value="600">10 minutes</option>
                                     <option value="900">15 minutes</option>
                                     <option value="1800">30 minutes</option>
-                                    <option value="3600">1 hour</option>
+                                    <option value="3600">1 hour</option> -->
+                                    <option value="100">30 seconds</option>
+                                    <option value="200" selected>1 minute</option>
+                                    <option value="1000">5 minutes</option>
+                                    <option value="2000">10 minutes</option>
+                                    <option value="3000">15 minutes</option>
+                                    <option value="5000">30 minutes</option>
+                                    <option value="12000">1 hour</option>
+                                    <option value="-1">All data</option>
                                 </select>
                             </div>
                         </div>
@@ -187,6 +195,10 @@
                     } 
                     else if (trace.name == 'Current') {
                         trace.y = new_meas['Current'];
+                        // meas_index = 1;
+                    }
+                    else if (trace.name == 'Power') {
+                        trace.y = new_meas['Power'];
                         // meas_index = 1;
                     }
                     else {
@@ -252,10 +264,11 @@
                 let new_meas = null;
                 let new_meas_ids = null;
                 let actual_instr = null;
-                // console.log(graph.data);
+                console.log(time_window_select.value);
                 let last_meas_id_on_graph = graph.data[0].x[graph.data[0].x.length - 1];
                 console.log(graph.data[0]);
                 console.log(last_meas_id_on_graph);
+                // last_meas_id_on_graph = last_meas_id_on_graph.replace(/"/g, "'");
                 $.ajax({
                     async: false,
                     type: "POST",
@@ -263,6 +276,7 @@
                     // contentType: "application/json; charset=utf-8",
                     data: { csrfmiddlewaretoken: '{{ csrf_token }}',
                             experiment_id: EXP_ID,
+                            time_window: time_window_select.value,
                             last_meas_id: last_meas_id_on_graph,
                             meas_numeric_list: JSON.stringify(meas_numeric_list),
                         },
@@ -289,6 +303,10 @@
                         } 
                         else if (trace.name == 'Current') {
                             trace.y = trace.y.concat(new_meas['Current']);
+                            // meas_index = 1;
+                        }
+                        else if (trace.name == 'Power') {
+                            trace.y = trace.y.concat(new_meas['Power']);
                             // meas_index = 1;
                         }
                         else {
