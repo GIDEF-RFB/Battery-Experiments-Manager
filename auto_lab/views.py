@@ -102,6 +102,32 @@ def monitor_selected(request, cs_id_selected): #TODO: Hacer que si un equipo est
     else:
         return HttpResponseBadRequest("<h1>Error 400 - Bad request</h1><h3>There are no experiments running or paused on the cycler station selected</h3>")
 
+def battery(request, return_render = True, bat_id=None):
+    actual_batteries = Battery.objects.all()#.select_related('bat_id')
+    for bat in actual_batteries:
+        print(f"Battery {bat.bat_id} - {bat.name}")
+    battery_selected = None
+    lithium_info = None
+    leadacid_info = None
+    redoxstack_info = None
+    if bat_id:
+        battery_selected = Battery.objects.get(bat_id=bat_id)
+        if battery_selected is not None:
+            lithium_info = Lithium.objects.filter(bat_id=bat_id).first()
+            leadacid_info = Leadacid.objects.filter(bat_id=bat_id).first()
+            redoxstack_info = Redoxstack.objects.filter(bat_id=bat_id).first()
+    context = {
+        'batteries': actual_batteries,
+        'battery_selected': battery_selected,
+        'lithium_info': lithium_info,
+        'leadacid_info': leadacid_info,
+        'redoxstack_info': redoxstack_info,
+        'id_selected': bat_id
+    }
+    if return_render:
+        return render(request, 'batteries.html', context)
+    else:
+        return context
 
 def form_submit_experiment(request):
     if request.method == 'POST':
@@ -533,7 +559,7 @@ def getNewMeasures(request):
     # print(post_dict['last_meas_id'])
     print(post_dict)
     last_meas_id = post_dict['last_meas_id'][0]
-    # time_window = post_dict['time_window'][0]
+    time_window = post_dict['time_window'][0]
     # print(f"{last_meas_date}  -  {type(last_meas_date)}\n")
     # last_meas_date = datetime.strptime(last_meas_date.replace('"',''), '%Y-%m-%d %H:%M:%S.%f')
     # last_meas_date = json.dumps(last_meas_date)
@@ -549,9 +575,21 @@ def getNewMeasures(request):
     # new_meas_ids = [(meas[0].strftime("%Y-%m-%d %H:%M:%S.%f"),) for meas in new_meas_ids]
     new_meas['Voltage'] = []
     new_meas['Current'] = []
+    new_meas['Power'] = []
     for meas_id in new_generic_measures:
         new_meas['Voltage'].append(meas_id.voltage/1000.0)
         new_meas['Current'].append(meas_id.current/1000.0)
+        new_meas['Power'].append(meas_id.power/1000.0)
+    if time_window =="7200":
+        new_meas['Voltage']= new_meas['Voltage'][::20]
+        new_meas['Current']= new_meas['Current'][::20]
+        new_meas['Power']= new_meas['Power'][::20]
+        new_meas_ids = new_meas_ids[::20]
+    elif time_window =="-1":
+        new_meas['Voltage']= new_meas['Voltage'][::50]
+        new_meas['Current']= new_meas['Current'][::50]
+        new_meas['Power']= new_meas['Power'][::50]
+        new_meas_ids = new_meas_ids[::50]
     for ext_meas_numeric in meas_numeric_list:
         if ext_meas_numeric != -1:
             temp_ext_meas = new_extended_measures.filter(used_meas_id=ext_meas_numeric).values_list('value', flat=True)
@@ -769,11 +807,24 @@ def getNewGraph(request):
         new_meas['Voltage'].append(meas_id.voltage/1000.0)
         new_meas['Current'].append(meas_id.current/1000.0)
         new_meas['Power'].append(meas_id.power/1000.0)
+    if limit_time ==7200:
+        new_meas['Voltage']= new_meas['Voltage'][::20]
+        new_meas['Current']= new_meas['Current'][::20]
+        new_meas['Power']= new_meas['Power'][::20]
+        new_meas_ids = new_meas_ids[::20]
+    elif limit_time ==-1:
+        new_meas['Voltage']= new_meas['Voltage'][::50]
+        new_meas['Current']= new_meas['Current'][::50]
+        new_meas['Power']= new_meas['Power'][::50]
+        new_meas_ids = new_meas_ids[::50]
     for ext_meas_numeric in meas_numeric_list:
         if ext_meas_numeric != -1:
             temp_ext_meas = new_extended_measures.filter(used_meas_id=ext_meas_numeric).values_list('value', flat=True)
             new_meas[ext_meas_numeric] = [meas/1000.0 for meas in list(temp_ext_meas)]
-
+            if limit_time =="7200":
+                new_meas[ext_meas_numeric]= new_meas[ext_meas_numeric][::20]
+            elif limit_time =="-1":
+                new_meas[ext_meas_numeric]= new_meas[ext_meas_numeric][::50]
     response = {
         'newMeas': new_meas,
         'newMeasIds': new_meas_ids,
@@ -802,6 +853,16 @@ def graphLive(exp_id_selected, time_window=300, only_data=False):
             y_measures['voltage'].append(meas.voltage/1000.0)
             y_measures['current'].append(meas.current/1000.0)
             y_measures['power'].append(meas.power/1000.0)
+        if time_window ==7200:
+            y_measures['voltage']= y_measures['voltage'][::20]
+            y_measures['current']= y_measures['current'][::20]
+            y_measures['power']= y_measures['power'][::20]
+            x_meas_id = x_meas_id[::20]
+        elif time_window ==-1:
+            y_measures['voltage']= y_measures['voltage'][::50]
+            y_measures['current']= y_measures['current'][::50]
+            y_measures['power']= y_measures['power'][::50]
+            x_meas_id = x_meas_id[::50]
 
         extended_measures = Extendedmeasures.objects.filter(exp_id=exp_id_selected).order_by('meas_id').filter(meas_id__gte=max(0, last_meas_id-time_window))
         different_extended_measures = extended_measures.values_list('used_meas_id', flat=True).distinct()
@@ -810,6 +871,10 @@ def graphLive(exp_id_selected, time_window=300, only_data=False):
         for ext_meas in different_extended_measures:
             extended_measures_names[ext_meas] = Usedmeasures.objects.get(used_meas_id=ext_meas).custom_name if Usedmeasures.objects.get(used_meas_id=ext_meas).custom_name != None else Usedmeasures.objects.get(used_meas_id=ext_meas).meas_type.meas_name
             y_measures[extended_measures_names[ext_meas]] = [value/1000.0 for value in extended_measures.filter(used_meas_id=ext_meas).values_list('value', flat=True)]
+            if time_window ==7200:
+                y_measures[extended_measures_names[ext_meas]]= y_measures[extended_measures_names[ext_meas]][::20]
+            elif time_window == -1:
+                y_measures[extended_measures_names[ext_meas]]= y_measures[extended_measures_names[ext_meas]][::50]
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
         fig.add_trace(go.Scatter(
@@ -1280,6 +1345,11 @@ def _launch_cs(cu_id, cs_id) -> None:
     cmd_to_mn_manager = CommDataMnCmdDataC(CommDataMnCmdTypeE.LAUNCH, cu_id, cs_id = cs_id)
     _MN_REQ_CHAN.send_data(cmd_to_mn_manager)
 
+def _stop_cs(cu_id, cs_id) -> None:
+    print(f'Stopping CS ({cs_id}) on CU ({cu_id})...')
+    cmd_to_mn_manager = CommDataMnCmdDataC(CommDataMnCmdTypeE.STOP, cu_id, cs_id = cs_id)
+    _MN_REQ_CHAN.send_data(cmd_to_mn_manager)
+
 
 def requestRefreshDevices(request) -> HttpResponse:
     TIMEOUT = 120
@@ -1401,7 +1471,9 @@ def modifyCs(request):
 def deleteCs(request):
     post_dict = dict(request.POST)
     cs_id = post_dict['cs_id'][0]
+    cu_id = post_dict['cu_id'][0]
     cs = Cyclerstation.objects.get(cs_id=cs_id)
     cs.deprecated = True
     cs.save()
+    _stop_cs(cu_id, cs_id)
     return HttpResponse(json.dumps({'status': 'OK'}))

@@ -77,6 +77,10 @@
                     {% if request.resolver_match.url_name == 'add_experiment' %}id="myActiveNavBar"{% endif %}>
                     <a class="nav-link myNavBar" href="{% url 'add_experiment' %}">Add experiments</a>
                 </li>
+                <li class="nav-item myNavBar"
+                    {% if request.resolver_match.url_name == 'battery' %}id="myActiveNavBar"{% endif %}>
+                    <a class="nav-link myNavBar" href="{% url 'battery' %}">Battery Info</a>
+                </li>
 {#                <li class="nav-item dropdown myNavBar">#}             {# Menu desplegable por si se quiere usar para añadir diferentes elementos#}
 {#                    <a class="nav-link dropdown-toggle myNavBar" data-toggle="dropdown" href="#" role="button"#}
 {#                       aria-haspopup="true" aria-expanded="false">Dropdown</a>#}

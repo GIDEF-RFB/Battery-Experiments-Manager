@@ -4,6 +4,8 @@ from auto_lab import views
 urlpatterns = [
     path('', views.monitor, name='monitor'),
     path('live<int:cs_id_selected>/', views.monitor_selected, name='live_cycle_station'),
+    path('battery', views.battery, name='battery'),
+    path('battery/<int:bat_id>/', views.battery, name='battery_info'),
     path('experiments', views.experiments, name='experiments'),
     path('add_experiment', views.add_experiment, name='add_experiment'),
     path('import_experiment', views.import_experiment, name='import_experiment'),

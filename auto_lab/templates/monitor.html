@@ -127,6 +127,17 @@
                                     <option value="900">15 minutes</option>
                                     <option value="1800">30 minutes</option>
                                     <option value="3600">1 hour</option> -->
+                                    <option value="60">30 seconds</option>
+                                    <option value="120" selected>1 minute</option>
+                                    <option value="600">5 minutes</option>
+                                    <option value="1200">10 minutes</option>
+                                    <option value="1800">15 minutes</option>
+                                    <option value="3600">30 minutes</option>
+                                    <option value="7200">1 hour</option>
+                                    <option value="-1">All data</option>
+                                </select>
+                                <!-- <label for="slice_step" style="margin-right: 7px;">Ommit step: </label>
+                                <select id="slice_step" name="slice_step" class=".selectpicker" data-size="8">
                                     <option value="100">30 seconds</option>
                                     <option value="200" selected>1 minute</option>
                                     <option value="1000">5 minutes</option>
@@ -135,7 +146,7 @@
                                     <option value="5000">30 minutes</option>
                                     <option value="12000">1 hour</option>
                                     <option value="-1">All data</option>
-                                </select>
+                                </select> -->
                             </div>
                         </div>
                         {% comment %} The following 2 scripts are placed here to set custom select before graph is loaded to avoid visual glitches {% endcomment %}
@@ -294,6 +305,17 @@
                 }
                 if (new_meas_ids != null) {
                     for (let trace of graph.data) {
+                        // First get the number of new measures
+                        // So the oldest measures can be delete if time_window is not -1
+                        let number_new_meas = new_meas_ids.length;
+                        let actual_number_meas = trace.x.length;
+                        let sum_meas = number_new_meas + actual_number_meas;
+                        if ((time_window_select.value != -1) && (sum_meas > parseInt(time_window_select.value)/2)) {
+                            let number_meas_to_delete = sum_meas-parseInt(time_window_select.value)/2;
+                            // splice method modifies the original array
+                            trace.x.splice(0, number_meas_to_delete);
+                            trace.y.splice(0, number_meas_to_delete);
+                        }
                         trace.x = trace.x.concat(new_meas_ids);
                         // console.log(trace.name);
                         let meas_index = null;
