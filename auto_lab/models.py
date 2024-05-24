@@ -232,7 +232,7 @@ class Devicestatus(models.Model):
 
 
 class Redoxelectrolyte(models.Model):
-    exp_id = models.ForeignKey(Experiment, models.DO_NOTHING, db_column='ExpID')  # Field name made lowercase.
+    exp_id = models.OneToOneField(Experiment, models.DO_NOTHING, db_column='ExpID', primary_key=True)  # Field name made lowercase.
     bat_id = models.ForeignKey(Redoxstack, models.DO_NOTHING, db_column='BatID')  # Field name made lowercase.
     polarity = models.CharField(db_column='Polarity', max_length=3, choices=Polarity_e.choices)  # Field name made lowercase.
     electrolyte_vol = models.PositiveIntegerField(db_column='ElectrolyteVol')  # Field name made lowercase.
