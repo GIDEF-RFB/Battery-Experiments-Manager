@@ -102,10 +102,31 @@ def monitor_selected(request, cs_id_selected): #TODO: Hacer que si un equipo est
     else:
         return HttpResponseBadRequest("<h1>Error 400 - Bad request</h1><h3>There are no experiments running or paused on the cycler station selected</h3>")
 
+def exp_info(request, return_render = True, exp_id_selected=None):
+    actual_exp = Experiment.objects.all()#.select_related('bat_id')
+    exp_selected = None
+    redox_electrolyte = None
+    # battery_info = None
+    if exp_id_selected:
+        exp_selected = Experiment.objects.get(exp_id=exp_id_selected)
+        if exp_selected is not None:
+            redox_electrolyte = Redoxelectrolyte.objects.filter(exp_id=exp_selected.exp_id).first()
+    context = {
+        'experiments': actual_exp,
+        'exp_selected': exp_selected,
+        'electrolyte_info': redox_electrolyte,
+        'battery_info': exp_selected.bat_id if exp_selected is not None else None,
+        'cycler_station_info': exp_selected.cs_id if exp_selected is not None else None,
+        'profile_info': exp_selected.prof_id if exp_selected is not None else None,
+        'id_selected': exp_id_selected
+    }
+    if return_render:
+        return render(request, 'exp_info.html', context)
+    else:
+        return context
+
 def battery(request, return_render = True, bat_id=None):
     actual_batteries = Battery.objects.all()#.select_related('bat_id')
-    for bat in actual_batteries:
-        print(f"Battery {bat.bat_id} - {bat.name}")
     battery_selected = None
     lithium_info = None
     leadacid_info = None
