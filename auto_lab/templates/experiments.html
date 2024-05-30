@@ -105,10 +105,10 @@
                         </div>
                         <div class="col-xl-3 col-md-6 col-12 filter-select">
                             <!-- BATTERY SELECT -->
-                            <label for="battery_select">Battery Serial N.º&nbsp;&nbsp;</label>
+                            <label for="battery_select">Battery Name&nbsp;&nbsp;</label>
                             <select name="battery_select" id="battery_select" class=".selectpicker" data-live-search="true" data-size="8" data-title="Select Battery..." multiple data-actions-box="true" required>
                                 {% for battery in battery_list %}
-                                    <option data-tokens="{{ battery.tech }} {{ battery.name }}" value="{{ battery.bat_id }}" label="{{ battery.tech }}">{{ battery.sn }}</option>
+                                    <option data-tokens="{{ battery.tech }} {{ battery.name }}" value="{{ battery.bat_id }}" label="{{ battery.tech }}">{{ battery.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -155,25 +155,42 @@
                             <table id="experimentsTable" class="table table-bordered">
                                 <thead class="thead-light">
                                 <tr>
-                                    <th scope="col">ID</th>
-                                    <th scope="col">Battery Serial N.º</th>
-                                    <th scope="col">Name</th>
-                                    <th scope="col">Description</th>
-                                    <th scope="col">Date Begin</th>
-                                    <th scope="col">Date Finish</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col">Preview</th>
-                                    <th scope="col">Data</th>
-                                    <th scope="col">Report</th>
-                                    <th scope="col">Status_Int_Order</th>
+                                    <th scope="col" style="text-align: center">ID</th>
+                                    <th scope="col" style="text-align: center">Battery Name</th>
+                                    <th scope="col" style="text-align: center">Name</th>
+                                    <th scope="col" style="text-align: center">Description</th>
+                                    <th scope="col" style="text-align: center">Date Begin</th>
+                                    <th scope="col" style="text-align: center">Date Finish</th>
+                                    <th scope="col" style="text-align: center">Status</th>
+                                    <th scope="col" style="text-align: center">Preview</th>
+                                    <th scope="col" style="text-align: center">Data</th>
+                                    <th scope="col" style="text-align: center">Report</th>
+                                    <!-- <th scope="col" style="text-align: center">Status_Int_Order</th> -->
                                 </tr>
                                 </thead>
                                 <tbody>
-
+                                <!-- {% if technology_list %}
+                                    <script> console.log('{{ technology_list }}'); </script>
+                                {% endif %}
+                                {% if battery_list %}
+                                    <script> console.log('{{ battery_list }}'); </script>
+                                {% endif %}
+                                {% if cycle_station_list %}
+                                    <script> console.log('{{ cycle_station_list }}'); </script>
+                                {% endif %}
+                                {% if profile_list %}
+                                    <script> console.log('{{ profile_list }}'); </script>
+                                {% endif %}
+                                {% if experiments_list %}
+                                    <script> console.log('{{ experiments_list }}'); </script>
+                                {% endif %}
+                                {% if bats %}
+                                    <script> console.log('{{ bats }}'); </script>
+                                {% endif %} -->
                                 {% for experiment, cs_id_name, batteryName, profileName in experiments_list %}
                                 <tr>
                                     <td style="vertical-align: middle">{{ experiment.exp_id }}</td>
-                                    <td style="vertical-align: middle">{{ batteryName.sn }}</td>
+                                    <td style="vertical-align: middle">{{ batteryName.name}}</td>
                                     <td style="vertical-align: middle">{{ experiment.name }}</td>
                                     <td style="max-width: 400px; overflow: auto;">{{ experiment.description }}</td>
                                     <td style="vertical-align: middle">{% if experiment.date_begin %}{{ experiment.date_begin|date:"Y/m/d H:i:s" }}{% else %}--{% endif %}</td>
@@ -304,9 +321,9 @@
         const pdf_svg = '{% include "pdf.svg" %}';
 
         class Experiment {
-            constructor(id, sn, name, description, date_begin, date_finish, status) {
+            constructor(id, bat_info, name, description, date_begin, date_finish, status) {
                 this.id = id;
-                this.sn = sn;
+                this.bat_info = bat_info;
                 this.name = name;
                 this.description = description;
                 if (date_begin) {
@@ -345,7 +362,7 @@
             }
 
             to_array() {
-                return [this.id, this.sn, this.name, this.description, this.date_begin, this.date_finish, this.status, this.preview, this.data, this.report, this.status_int_order];
+                return [this.id, this.bat_info, this.name, this.description, this.date_begin, this.date_finish, this.status, this.preview, this.data, this.report, this.status_int_order];
             }
         }
 
@@ -364,11 +381,12 @@
                         filters_profile: JSON.stringify($('#profile_select').val()),
                     },
                 success:  function(response){
-                    reloadExperimentsTable(JSON.parse(response)['experiment_list']);
-                    updateOptions('battery_select', JSON.parse(response)['bats']);
-                    updateOptions('cycle_station_select', JSON.parse(response)['stations']);
-                    updateOptions('profile_select', JSON.parse(response)['profs']);
-                    reloadExperimentsTable(JSON.parse(response)['experiment_list']);
+                    let response_json = JSON.parse(response);
+                    reloadExperimentsTable(response_json['experiment_list']);
+                    updateOptions('battery_select', response_json['bats']);
+                    updateOptions('cycle_station_select', response_json['stations']);
+                    updateOptions('profile_select', response_json['profs']);
+                    // reloadExperimentsTable(response_json['experiment_list']);
                 }
             });
         }
@@ -376,7 +394,6 @@
         function reloadExperimentsTable(experiment_list) {
             let table = $('#experimentsTable').DataTable();
             table.clear().draw();
-
 
             for (experiment of experiment_list) {
 
@@ -400,21 +417,18 @@
                     default:
                         break;
                 }
-
                 let add_row = table.row.add(new Experiment(
                     experiment['id'],
-                    experiment['sn'],
+                    experiment['bat_name'],
                     experiment['name'],
                     experiment['description'],
                     experiment['date_begin'],
                     experiment['date_finish'],
                     experiment['status'],
                 ).to_array());
-
                 add_row.node().cells[7].classList.add('_tooltip');
                 add_row.node().cells[6].classList.add(class_to_add);
             }
-
             table.draw();
         }
 
