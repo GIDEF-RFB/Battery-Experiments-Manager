@@ -8,6 +8,7 @@ urlpatterns = [
     path('battery/<int:bat_id>/', views.battery, name='battery_info'),
     path('exp_info', views.exp_info, name='exp_info'),
     path('exp_info<int:exp_id_selected>/', views.exp_info, name='exp_info_select'),
+    path('change-exp-description/', views.change_exp_info_description, name='change-exp-description'),
     path('experiments', views.experiments, name='experiments'),
     path('add_experiment', views.add_experiment, name='add_experiment'),
     path('import_experiment', views.import_experiment, name='import_experiment'),
