@@ -168,7 +168,7 @@
             while (custom_description.length > 250) {
                 console.log(custom_description.length);
                 alert("❌ Description too long. Please enter a description with less than 250 characters.");
-                custom_description = prompt("Enter the new experiment description", exp_description);
+                custom_description = prompt("Enter the new experiment description", custom_description.slice(0,250));
             }
             console.log(custom_description);
             $.ajax({

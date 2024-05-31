@@ -103,7 +103,7 @@ def monitor_selected(request, cs_id_selected): #TODO: Hacer que si un equipo est
         return HttpResponseBadRequest("<h1>Error 400 - Bad request</h1><h3>There are no experiments running or paused on the cycler station selected</h3>")
 
 def exp_info(request, return_render = True, exp_id_selected=None):
-    actual_exp = Experiment.objects.all()#.select_related('bat_id')
+    actual_exp = Experiment.objects.exclude(status=ExperimentStatus_e.RUNNING.value)
     exp_selected = None
     redox_electrolyte = None
     # battery_info = None
