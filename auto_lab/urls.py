@@ -28,6 +28,7 @@ urlpatterns = [
     path('translate-measures-names/', views.translateMeasuresNames, name='translate-measures-names'),
     path('get-new-graph/', views.getNewGraph, name='get-new-graph'),
     path('get-profiles/', views.getProfiles, name='get-profiles'),
+    path('get-profiles-import/', views.getProfilesImport, name='get-profiles-import'),
     path('generate_previews/', views.generatePreviews, name='generate-previews'),
     path('cycler_station/', views.cycler_station, name='cycler_station'),
     path('csofcu/', views.getCsOfCu, name='get-cs-of-cu'),

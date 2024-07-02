@@ -4,6 +4,7 @@ from datetime import datetime
 import csv
 import json
 
+import pandas as pd
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render, redirect
 from django.core.files.storage import default_storage
@@ -27,7 +28,7 @@ from auto_lab.models import (Alarm, Battery, Compatibledevices, Computationaluni
                                 Usedmeasures, Availablemeasures, Detecteddevices)
 from auto_lab.models_types import (Technology_e, Chemistry_Lithium_e, Chemistry_LeadAcid_e, BipolarType_e,
                          MembraneType_e, ElectrolyteType_e, DeviceType_e, Available_e, ExperimentStatus_e,
-                         DeviceStatus_e, Mode_e, LimitType_e, ConnStatus_e, Polarity_e)
+                         DeviceStatus_e, Mode_e, LimitType_e, ConnStatus_e, Polarity_e, PowerMode_e)
 from auto_lab.validator import ques
 from auto_lab.analyzer import analyzer, stringToInstructions
 
@@ -209,15 +210,15 @@ def form_submit_experiment(request):
         newExperiment.save()
 
         if form['expBattery_type'] == 'RedoxStack':
-            newRedoxElectrolyte = Redoxelectrolyte( exp_id = newExperiment,
-                                                    bat_id = Redoxstack.objects.get(bat_id=newExperiment.bat_id),
-                                                    polarity = form['expElectrolytePolarity_input'],
-                                                    electrolyte_vol = form['expElectrolyteVolume_input'],
-                                                    initial_soc = form['expElectrolyteInitialSOC_input'],
-                                                    min_flow_rate = form['expElectrolyteMinFlowRate_input'],
-                                                    max_flow_rate = form['expElectrolyteMaxFlowRate_input'],
-                                                  )
-            newRedoxElectrolyte.save()
+            new_redox_electrolyte = Redoxelectrolyte(
+                exp_id = newExperiment,
+                bat_id = Redoxstack.objects.get(bat_id=newExperiment.bat_id),
+                polarity = form['expElectrolytePolarity_input'],
+                electrolyte_vol = form['expElectrolyteVolume_input'],
+                initial_soc = form['expElectrolyteInitialSOC_input'],
+                min_flow_rate = form['expElectrolyteMinFlowRate_input'],
+                max_flow_rate = form['expElectrolyteMaxFlowRate_input'],)
+            new_redox_electrolyte.save()
 
     urlToBeRedirected = f'/'
     return redirect(urlToBeRedirected)
@@ -227,77 +228,48 @@ def form_import_experiment(request):
     form = request.POST
 
     if request.method == 'POST' and len(request.FILES) > 0:
-        extended_measures_selected = form.getlist('expExtendedMeasures_input')
-        for x in extended_measures_selected:
-            extended_measures_selected[extended_measures_selected.index(x)] = int(x)
-        instructions_given = True
-        try:
-            extended_measures_selected.remove(0)
-        except ValueError as e:
-            instructions_given = False
 
-        # extended_measures_selected_names_and_id = {Measuresdeclaration.objects.get(meas_type=meas_type).meas_name.lower() : meas_type for meas_type in extended_measures_selected}
-        extended_measures_selected_names_and_id = {Extendedmeasures.objects.get(meas_type=meas_type).meas_name.lower() : meas_type for meas_type in extended_measures_selected}
-
+        ##### CHECK MEAS FILE IS CORRECT #####
         stored_time = time()
-
-        profilefile = request.FILES['file_upload']
-        file_read = profilefile.read().decode('utf-8').splitlines()
-        csv_reader = csv.reader(file_read, delimiter=',')
         line_count = 0
-        ext_meas_csv_columns = {} # {meas_type : column_index}
-        generic_meas_csv_columns = {} # {generic_meas_name : column_index}
-        ext_meas_list = []
         generic_meas_list = []
-        max_instr_id = 0
-        for row in csv_reader:
-            if line_count == 0:
-                for column in row:
-                    row[row.index(column)] = column.lower()
-                for column in row:
-                    if column in extended_measures_selected_names_and_id:
-                        ext_meas_csv_columns[extended_measures_selected_names_and_id[column]] = row.index(column)
-                    else:
-                        if column == 'timestamp':
-                            generic_meas_csv_columns['timestamp'] = row.index(column)
-                        elif column == 'voltage':
-                            generic_meas_csv_columns['voltage'] = row.index(column)
-                        elif column == 'current':
-                            generic_meas_csv_columns['current'] = row.index(column)
-                        elif instructions_given and column == 'instr_id':
-                            generic_meas_csv_columns['instr_id'] = row.index(column)
+        ext_meas_list = []
+        profilefile = request.FILES['file_upload']
+        is_labview = bool(request.POST['is_labview'])
+        exp_df = None
+        print(f"Is labview: {is_labview}")
+        if is_labview:
+            exp_df = pd.read_csv(profilefile, sep=';', decimal=',')
+        else:
+            exp_df = pd.read_csv(profilefile, sep=',')
+        exp_df.columns = [x.lower().replace(' ', '') for x in exp_df.columns]
 
-                print(f'Column names are {", ".join(row)}')
-            else:
-                try:
-                    for generic_meas in generic_meas_csv_columns:
-                        if generic_meas == 'timestamp':
-                            datetime.strptime(row[generic_meas_csv_columns[generic_meas]], '%Y-%m-%d %H:%M:%S.%f')
-                        elif generic_meas == 'voltage':
-                            if float(row[generic_meas_csv_columns[generic_meas]]) > MAX_NUMERIC_VALUE or float(row[generic_meas_csv_columns[generic_meas]]) < -MAX_NUMERIC_VALUE:
-                                raise ValueError
-                        elif generic_meas == 'current':
-                            if float(row[generic_meas_csv_columns[generic_meas]]) > MAX_NUMERIC_VALUE or float(row[generic_meas_csv_columns[generic_meas]]) < -MAX_NUMERIC_VALUE:
-                                raise ValueError
-                        elif instructions_given and generic_meas == 'instr_id':
-                            if int(row[generic_meas_csv_columns[generic_meas]]) <= 0:
-                                raise ValueError
-                            else:
-                                if int(row[generic_meas_csv_columns[generic_meas]]) > max_instr_id:
-                                    max_instr_id = int(row[generic_meas_csv_columns[generic_meas]])
-                    for ext_meas in ext_meas_csv_columns:
-                        if float(row[ext_meas_csv_columns[ext_meas]]) > MAX_NUMERIC_VALUE or float(row[ext_meas_csv_columns[ext_meas]]) < -MAX_NUMERIC_VALUE:
-                            raise ValueError
-                except Exception as e:
-                    print(e)
-                    return HttpResponseBadRequest("<h1>Error 406 - Not Acceptable</h1><h3>Data in csv not valid</h3><img src='https://http.cat/400'>")
-            line_count += 1
-        print(f'1. Processed {line_count} lines. Elapsed time: {time() - stored_time} seconds')
-        line_count = 0
-        csv_reader = csv.reader(file_read, delimiter=',')
-        # print(profilefile.read().decode('utf-8').splitlines())
+        ###############################IMPORT ANY KIND OF EXPERIMENT################################
+        ### Gather generic meas
+        if any(x in exp_df.columns for x in ['fechahora', 'date']):
+            if 'fechahora' in exp_df.columns:
+                exp_df.rename(columns={"fechahora": "timestamp"}, inplace=True)
+                exp_df['timestamp'] = pd.to_datetime(exp_df['timestamp'],
+                                                     format='%Y/%m/%d %H:%M:%S,%f.')
+            elif 'date' in exp_df.columns:
+                exp_df.rename(columns={"date": "timestamp"}, inplace=True)
+        if any(x in exp_df.columns for x in ['tension']):
+            exp_df.rename(columns={"tension": "voltage"}, inplace=True)
+        if any(x in exp_df.columns for x in ['corriente', 'curr', '']):
+            if 'corriente' in exp_df.columns:
+                exp_df.rename(columns={"corriente": "current"}, inplace=True)
+        if any(x in exp_df.columns for x in ['potencia']):
+            if 'potencia' in exp_df.columns:
+                exp_df.rename(columns={"potencia": "power"}, inplace=True)
+
+        ext_meas_columns = [x for x in exp_df.columns if x not in ['timestamp',
+                                                                   'voltage', 'current',
+                                                                   'power', 'instr_id']]
+
+        ##### SET EXPERIMENT #####
+        max_instr_id = 0
         date = datetime.now()
-        newExperiment = Experiment( name=form['expName_input'],
+        new_experiment = Experiment( name=form['expName_input'],
                                     description=form['expDescription_input'],
                                     date_creation=date.strftime("%Y-%m-%d %H:%M:%S"),
                                     date_begin=date.strftime("%Y-%m-%d %H:%M:%S"),
@@ -306,7 +278,7 @@ def form_import_experiment(request):
                                     cs_id=Cyclerstation.objects.get(name = "Virtual", cs_id = 1),
                                     bat_id=Battery.objects.get(bat_id=form['expBattery_input']),
                                   )
-
+        ##### SET PROFILE #####
         if 'profile_instructions_write' in form or 'profile_instructions_upload' in form:
             profile_method = None
             if 'profile_instructions_write' in form:
@@ -318,58 +290,100 @@ def form_import_experiment(request):
                 return HttpResponseBadRequest("<h1>Error 406 - Not Acceptable</h1><h3>Data in csv not valid</h3><img src='https://http.cat/400'>")
             tmp_analyzer = analyzer(instructions)
 
-            newProfile = Profile(   name=form['profName_input_'+profile_method],
-                                    description=form['profDescription_input_'+profile_method],
-                                    volt_max=tmp_analyzer.volt_max,
-                                    volt_min=tmp_analyzer.volt_min,
-                                    curr_max=tmp_analyzer.curr_max,
-                                    curr_min=tmp_analyzer.curr_min,
+            newProfile = Profile(name=form['profName_input_'+profile_method],
+                                description=form['profDescription_input_'+profile_method],
+                                volt_max=tmp_analyzer.volt_max,
+                                volt_min=tmp_analyzer.volt_min,
+                                curr_max=tmp_analyzer.curr_max,
+                                curr_min=tmp_analyzer.curr_min,
                                 )
             newProfile.save()
-            newExperiment.prof_id = newProfile
+            new_experiment.prof_id = newProfile
 
             for instr in instructions:
                 instr.prof_id = newProfile
             Instructions.objects.bulk_create(instructions)
 
         elif 'expProfileSelected_input' in form:
-            newExperiment.prof_id = Profile.objects.get(prof_id=form['expProfileSelected_input'])
-            if max_instr_id > len(Instructions.objects.filter(prof_id=newExperiment.prof_id).values_list('instr_id', flat=True)):
+            new_experiment.prof_id = Profile.objects.get(prof_id=form['expProfileSelected_input'])
+            if max_instr_id > len(Instructions.objects.filter(prof_id=new_experiment.prof_id).values_list('instr_id', flat=True)):
                 return HttpResponseBadRequest("<h1>Error 406 - Not Acceptable</h1><h3>Data in csv not valid</h3><img src='https://http.cat/400'>")
         else:
             return HttpResponseBadRequest("<h1>Error 400 - Bad request</h1><h3>There is no profile selected</h3><img src='https://http.cat/400'>")
 
-        newExperiment.save()
+        ##### SAVE EXPERIMENT AND PROFILE TO DATABASE #####
+        new_experiment.save()
+
+        ##### SET REDOXSTACK #####
 
         if form['expBattery_type'] == 'RedoxStack':
-            newRedoxElectrolyte = Redoxelectrolyte( exp_id = newExperiment,
-                                                    bat_id = newExperiment.bat_id,
-                                                    electrolyte_vol = form['expElectrolyteVolume_input'],
-                                                    max_flow_rate = form['expElectrolyteMaxFlowRate_input'],
-                                                  )
-            newRedoxElectrolyte.save()
+            new_redox_electrolyte = Redoxelectrolyte(
+                exp_id = new_experiment,
+                bat_id = new_experiment.bat_id,
+                electrolyte_vol = form['expElectrolyteVolume_input'],
+                max_flow_rate = form['expElectrolyteMaxFlowRate_input'],)
+            new_redox_electrolyte.save()
 
-        stored_time = time()
-        for row in csv_reader:
-            if line_count != 0:
-                new_generic_meas = Genericmeasures(  exp_id = newExperiment,
-                                                        meas_id = line_count,
-                                                        timestamp = datetime.strptime(row[generic_meas_csv_columns['timestamp']], '%Y-%m-%d %H:%M:%S.%f'),
-                                                        instr_id = Instructions.objects.get(prof_id=newExperiment.prof_id, instr_id=int(row[generic_meas_csv_columns['instr_id']])) if instructions_given else Instructions.objects.get(prof_id=newExperiment.prof_id, instr_id=1),
-                                                        voltage = int(float(row[generic_meas_csv_columns['voltage']])*1000),
-                                                        current = int(float(row[generic_meas_csv_columns['current']])*1000),
-                                                    )
-                # new_generic_meas.save()
-                generic_meas_list.append(new_generic_meas)
-                for meas_type in ext_meas_csv_columns:
-                    new_ext_meas = Extendedmeasures(   exp_id = newExperiment,
-                                                        meas_id = new_generic_meas.meas_id,
-                                                        meas_type = Measuresdeclaration.objects.get(meas_type=meas_type),
-                                                        value = int(float(row[ext_meas_csv_columns[meas_type]])*1000),
-                                                    )
-                    ext_meas_list.append(new_ext_meas)
+        ##### SET MEASUREMENTS #####
 
-            line_count += 1
+        for row in exp_df.iterrows():
+            print(row)
+            voltage = int(row[1]['voltage']*1000)
+            current = int(row[1]['current']*1000)
+            power = int(row[1]['power']*1000)
+            new_generic_meas = Genericmeasures(exp_id = new_experiment,
+                                meas_id = row[0],
+                                timestamp = row[1]['timestamp'],
+                                instr_id = Instructions.objects.get(prof_id=new_experiment.prof_id,
+                                            instr_id=int(row[1]['instr_id'])) if instructions_given else Instructions.objects.get(prof_id=new_experiment.prof_id, instr_id=1),
+                                voltage = voltage,
+                                current = current,
+                                power = power,
+                                power_mode= PowerMode_e.DISABLE.value,
+                                )
+            print(f"New generic meas: {new_generic_meas.__dict__}")
+            generic_meas_list.append(new_generic_meas)
+            for meas_type in ext_meas_columns:
+                meas_type_id = 0
+                meas_value = 0
+                if meas_type == 'temp_1':
+                    meas_type_id = 1
+                    meas_value = int(float(row[1][meas_type])*100)
+                elif meas_type == 'temp_2':
+                    meas_type_id = 2
+                    meas_value = int(float(row[1][meas_type])*100)
+                elif meas_type == 'temp_3':
+                    meas_type_id = 3
+                    meas_value = int(float(row[1][meas_type])*100)
+                elif meas_type == 'temp_4':
+                    meas_type_id = 4
+                    meas_value = int(float(row[1][meas_type])*100)
+                elif meas_type == 'presion_1':
+                    meas_type_id = 5
+                    meas_value = int(float(row[1][meas_type])*100)
+                elif meas_type == 'presion_2':
+                    meas_type_id = 6
+                    meas_value = int(float(row[1][meas_type])*100)
+                elif meas_type == 'nivel_1':
+                    meas_type_id = 7
+                    meas_value = int(float(row[1][meas_type]))
+                elif meas_type == 'nivel_2':
+                    meas_type_id = 8
+                    meas_value = int(float(row[1][meas_type]))
+                elif meas_type == 'caudal_1':
+                    meas_type_id = 9
+                    meas_value = int(float(row[1][meas_type])*1000)
+                elif meas_type == 'caudal_2':
+                    meas_type_id = 10
+                    meas_value = int(float(row[1][meas_type])*1000)
+                new_ext_meas = Extendedmeasures(exp_id = new_experiment,
+                                                meas_id = new_generic_meas.meas_id,
+                                                meas_type = meas_type_id,
+                                                value = meas_value,
+                                                )
+                ext_meas_list.append(new_ext_meas)
+                line_count += 1
+
         _time = time()
         Genericmeasures.objects.bulk_create(generic_meas_list)
         Extendedmeasures.objects.bulk_create(ext_meas_list)
@@ -438,26 +452,31 @@ def validateProfile(request):
 
         tmp_analyzer = analyzer(stringToInstructions(request.POST['text']))
         battery_id = request.POST['battery_selected']
-        cycler_station_id = request.POST['cycler_station_selected']
-        if battery_id == '' or cycler_station_id == '':
-            raise Exception('No battery or cycler station selected')
+        if battery_id == '':
+            raise Exception('No battery selected')
         battery = Battery.objects.get(bat_id=battery_id)
-        used_devices = Useddevices.objects.filter(cs_id=cycler_station_id)
         volt_max, volt_min = battery.volt_max, battery.volt_min
         curr_max, curr_min = battery.curr_max, battery.curr_min
-        for device in used_devices:
-            if  (device.dev_id.comp_dev_id.volt_min is not None and
-                    device.dev_id.comp_dev_id.volt_min > volt_min):
-                volt_min = device.dev_id.comp_dev_id.volt_min
-            if (device.dev_id.comp_dev_id.volt_max is not None and
-                device.dev_id.comp_dev_id.volt_max < volt_max):
-                volt_max = device.dev_id.comp_dev_id.volt_max
-            if (device.dev_id.comp_dev_id.curr_min is not None and
-                device.dev_id.comp_dev_id.curr_min > curr_min):
-                curr_min = device.dev_id.comp_dev_id.curr_min
-            if (device.dev_id.comp_dev_id.curr_max is not None and
-                device.dev_id.comp_dev_id.curr_max < curr_max):
-                curr_max = device.dev_id.comp_dev_id.curr_max
+        if request.POST['import']:
+            cycler_station_id = 1
+        else:
+            cycler_station_id = request.POST['cycler_station_selected']
+            if cycler_station_id == '':
+                raise Exception('No cycler station selected')
+            used_devices = Useddevices.objects.filter(cs_id=cycler_station_id)
+            for device in used_devices:
+                if  (device.dev_id.comp_dev_id.volt_min is not None and
+                        device.dev_id.comp_dev_id.volt_min > volt_min):
+                    volt_min = device.dev_id.comp_dev_id.volt_min
+                if (device.dev_id.comp_dev_id.volt_max is not None and
+                    device.dev_id.comp_dev_id.volt_max < volt_max):
+                    volt_max = device.dev_id.comp_dev_id.volt_max
+                if (device.dev_id.comp_dev_id.curr_min is not None and
+                    device.dev_id.comp_dev_id.curr_min > curr_min):
+                    curr_min = device.dev_id.comp_dev_id.curr_min
+                if (device.dev_id.comp_dev_id.curr_max is not None and
+                    device.dev_id.comp_dev_id.curr_max < curr_max):
+                    curr_max = device.dev_id.comp_dev_id.curr_max
         if tmp_analyzer.curr_max > curr_max or tmp_analyzer.curr_min < curr_min:
             error_msg = (f'Current out of range, Min: Dev {curr_min}>{tmp_analyzer.curr_min} inst, '
                          f'Max: inst {tmp_analyzer.curr_max}>{curr_max} Dev')
@@ -468,6 +487,7 @@ def validateProfile(request):
             is_valid = False
 
     except Exception as err:
+        print("hola esto es un error")
         print(err)
         error_msg = str(err)
         is_valid =False
@@ -740,6 +760,29 @@ def getProfiles(request):
                 curr_min = device.dev_id.comp_dev_id.curr_min
             if device.dev_id.comp_dev_id.curr_max < curr_max:
                 curr_max = device.dev_id.comp_dev_id.curr_max
+    # print(f"\nvolt_max: {volt_max}\nvolt_min: {volt_min}\ncurr_max: {curr_max}\ncurr_min: {curr_min}\n")
+    profiles = Profile.objects.filter(volt_max__lte=volt_max).filter(volt_min__gte=volt_min).filter(curr_max__lte=curr_max).filter(curr_min__gte=curr_min)
+    profiles_extra = Profile.objects.filter(volt_max=None).filter(volt_min=None).filter(curr_max__lte=curr_max).filter(curr_min__gte=curr_min)
+    # profiles_ids = profiles.values_list('prof_id', flat=True) + profiles_extra.values_list('prof_id', flat=True)
+    profiles_ids = list(profiles.values_list('prof_id', flat=True)) + list(profiles_extra.values_list('prof_id', flat=True))
+    profiles = profiles | profiles_extra
+    for profile in profiles:
+        profile.__setattr__('instr', list(Instructions.objects.filter(prof_id=profile.prof_id).order_by('instr_id')))
+        for instr in profile.instr:
+            instr.set_point = instr.set_point/1000.0
+            instr.limit_point = instr.limit_point/1000.0
+    context = {
+        'profiles': profiles,
+    }
+    return render(request, 'profile_elements.html', context)
+
+def getProfilesImport(request):
+    post_dict = dict(request.POST)
+    battery_id = post_dict['battery'][0]
+    # cycler_station_id = post_dict['cycler_station'][0]
+    battery = Battery.objects.get(bat_id=battery_id)
+    volt_max, volt_min, curr_max, curr_min = battery.volt_max, battery.volt_min, battery.curr_max, battery.curr_min
+
     # print(f"\nvolt_max: {volt_max}\nvolt_min: {volt_min}\ncurr_max: {curr_max}\ncurr_min: {curr_min}\n")
     profiles = Profile.objects.filter(volt_max__lte=volt_max).filter(volt_min__gte=volt_min).filter(curr_max__lte=curr_max).filter(curr_min__gte=curr_min)
     profiles_extra = Profile.objects.filter(volt_max=None).filter(volt_min=None).filter(curr_max__lte=curr_max).filter(curr_min__gte=curr_min)
