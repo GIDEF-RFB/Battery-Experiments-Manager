@@ -257,7 +257,7 @@ create table if not exists Alarm
 (
     ExpID           mediumint       unsigned    not null,
     AlarmID         mediumint       unsigned    not null,
-    Timestamp       datetime                    not null,
+    Timestamp       datetime(3)                    not null,
     Code            mediumint       unsigned    not null,
     Value           mediumint                   not null,
 
@@ -274,7 +274,7 @@ create table if not exists Status
     StatusID        mediumint       unsigned    not null,                       -- reset to 1 for each experiment
     ExpID           mediumint       unsigned    not null,
     DevID           mediumint       unsigned    not null,
-    Timestamp       datetime                    not null,
+    Timestamp       datetime(3)                    not null,
     Status          enum ('OK', 'COMM_ERROR', 'INTERNAL_ERROR') not null,
     ErrorCode       smallint        unsigned    not null,
 
@@ -329,7 +329,7 @@ create table if not exists GenericMeasures
 (
     MeasID          int             unsigned    not null,
     ExpID           mediumint       unsigned    not null,
-    Timestamp       datetime                    not null,
+    Timestamp       datetime(3)                    not null,
     InstrID         mediumint       unsigned    not null,
     Voltage         mediumint       unsigned    not null,
     Current         mediumint                   not null,
