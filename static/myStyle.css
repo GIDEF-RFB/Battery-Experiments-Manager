@@ -458,9 +458,111 @@ ul.disabled .radioBtn:checked + .profileRadioContainer{
 
 /*-------------------------------------  IMPORT  EXPERIMENT  -------------------------------------*/
 
-#drop_zone.is-invalid {
-    /*box-shadow: 0px 0px 10px 2px rgba(255, 0, 0, 0.25);*/
-    border-color: red;
+.icon-container {
+    position: relative;
+    display: inline-block;
+}
+
+.icon {
+    width: 30px; /* Adjust icon size */
+    height: 30px;
+    cursor: pointer;
+}
+
+.icon-text{
+    display: none;
+    position: relative;
+    top: 20px; /* Position the large image */
+    left: 0;
+    z-index: 5;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.2);
+}
+
+.large-image {
+    display: none;
+    position: relative;
+    top: 5px; /* Position the large image */
+    left: 0;
+    width: 600px; /* Adjust large image size */
+    /* z-index: 1; */
+}
+
+
+.icon-container:hover .large-image {
+    display: block;
+}
+
+.icon-container:hover .icon-text {
+    display: block;
+}
+
+#drop_zone{
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    padding: 25px;
+    text-align: center;
+    font-size: 20px;
+    color: #aaa;
+    margin-bottom: 20px;
+    background-color: #f8f9fa;
+    transition: border-color 0.5s;
+}
+
+#drop_zone:hover{
+    /*border: 2px dashed #aaa;*/
+    color: #aaa;
+    /*background-color: #f4f4f4;*/
+    background-color: #f4f4f4 !important;
+}
+
+#drop_zone p{
+    margin: 0;
+    padding: 0;
+}
+
+#drop_zone .blue {
+    color: #0f6cc9;
+
+}
+
+#drop_zone * {
+    pointer-events: none;
+}
+
+.file_upload{
+    display:block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 13px;
+    height: auto;
+    width: 30%;
+}
+
+.csv_uploaded {
+    display: none;
+}
+
+#loading-screen {
+    background: #AAAAAA69;
+    opacity: 1;
+    height:100%;
+    position:absolute;
+    top:0px;
+    right:0px;
+    bottom:0px;
+    left:0px;
+    z-index:9999;
+    display: none;
+}
+
+#loading-screen div {
+    margin-left: 47%;
+    width: 100px;
+    height: 100px;
+    margin-top: 40vh;
 }
 
 
